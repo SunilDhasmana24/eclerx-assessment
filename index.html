@@ -2040,8 +2040,8 @@ function scoreAssessment(candidateAnswers) {
      SUPABASE_KEY  → Settings > API Keys > Publishable key > default
                      format: sb_publishable_XXXX...
      ══════════════════════════════════════════════════════ */
-  const SUPABASE_URL  = 'https://pvegafdltfuvdfevzyny.supabase.co';   // e.g. https://btqh0cn17xyz.supabase.co
-  const SUPABASE_KEY  = 'sb_publishable_BTQH0cN17hZiPYKQh2VppA_A5Qrgj3P';        // e.g. sb_publishable_BTQH0cN17...
+  const SUPABASE_URL  = 'YOUR_SUPABASE_PROJECT_URL';   // e.g. https://btqh0cn17xyz.supabase.co
+  const SUPABASE_KEY  = 'YOUR_PUBLISHABLE_KEY';        // e.g. sb_publishable_BTQH0cN17...
 
   async function saveToSupabase(result, candidateAnswers, meta) {
     if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL' || !SUPABASE_KEY || SUPABASE_KEY === 'YOUR_PUBLISHABLE_KEY') return;
@@ -2386,7 +2386,7 @@ function renderDashboard(rows) {
         <p class="assess-summary">${r.summary||''}</p>
         <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Question Breakdown</div>
         <div class="assess-q-grid">${qItems}</div>
-        <button class="assess-dl-btn" onclick="downloadAssessment(${idx}, ${JSON.stringify(r).replace(/'/g,"&apos;")})">⬇ Download Assessment</button>
+        <button class="assess-dl-btn" onclick="downloadAssessment(${idx})">⬇ Download Assessment</button>
       </div>
     </div>`;
   });
@@ -2405,9 +2405,9 @@ function renderDashboard(rows) {
   window._dashRows = rows;
 }
 
-function downloadAssessment(idx, rowData) {
-  const r = window._dashRows ? window._dashRows[idx] : rowData;
-  if (!r) return;
+function downloadAssessment(idx) {
+  const r = window._dashRows && window._dashRows[idx];
+  if (!r) { showToast('⚠ Data not available. Please refresh the dashboard.', 'warn'); return; }
   const gc = ({A:'#10b981','A+':'#10b981',B:'#00e5ff',C:'#f59e0b',D:'#f97316',F:'#ef4444'})[r.grade]||'#64748b';
 
   // Build per-question breakdown HTML
