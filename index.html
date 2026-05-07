@@ -177,8 +177,6 @@
   #mainSubmitBtn { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%); color:#000; border:none; border-radius:8px; padding:12px 28px; cursor:pointer; transition:opacity 0.2s,transform 0.1s; white-space:nowrap; }
   #mainSubmitBtn:hover:not(:disabled) { opacity:0.9; transform:translateY(-1px); }
   #mainSubmitBtn:disabled { cursor:not-allowed; opacity:0.6; }
-  #mainSubmitBtn.btn-generate { background:linear-gradient(135deg,var(--accent3) 0%,#f97316 100%); animation:pulseBtn 1.5s infinite; }
-  @keyframes pulseBtn { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.4)} 50%{box-shadow:0 0 0 8px rgba(245,158,11,0)} }
 
   /* LOGIN MODAL */
   .login-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); z-index:9000; align-items:center; justify-content:center; backdrop-filter:blur(4px); }
@@ -202,6 +200,51 @@
   .score-denom { font-size:18px; color:var(--muted); }
   .score-pct { font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--muted); }
   .score-summary { font-size:13px; color:#94a3b8; line-height:1.7; margin-top:8px; max-width:520px; }
+
+
+  /* DASHBOARD TAB */
+  .dash-gate { display:flex; align-items:center; justify-content:center; min-height:340px; }
+  .dash-gate-box { background:var(--surface2); border:1px solid var(--border); border-radius:16px; padding:36px 40px; width:100%; max-width:400px; }
+  .dash-gate-title { font-size:20px; font-weight:800; color:var(--text); margin-bottom:4px; }
+  .dash-gate-sub { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); margin-bottom:24px; letter-spacing:1px; }
+  .dash-gate-field { margin-bottom:14px; }
+  .dash-gate-field label { display:block; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+  .dash-gate-field input { width:100%; background:var(--code-bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:14px; padding:12px 16px; outline:none; transition:border-color 0.2s; box-sizing:border-box; }
+  .dash-gate-field input:focus { border-color:var(--accent); }
+  .dash-gate-btn { width:100%; margin-top:4px; font-family:'Syne',sans-serif; font-size:14px; font-weight:700; background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%); color:#000; border:none; border-radius:8px; padding:13px; cursor:pointer; transition:opacity 0.2s; }
+  .dash-gate-btn:hover { opacity:0.9; }
+  .dash-gate-error { display:none; margin-top:12px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--red); background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:6px; padding:10px 14px; }
+
+  .dash-content { display:none; }
+  .dash-toolbar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:24px; padding:16px 20px; background:var(--surface); border:1px solid var(--border); border-radius:10px; }
+  .dash-toolbar-title { font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--accent); flex:1; }
+  .dash-refresh-btn { font-family:'Syne',sans-serif; font-size:13px; font-weight:600; background:rgba(0,229,255,0.1); color:var(--accent); border:1px solid rgba(0,229,255,0.2); border-radius:6px; padding:8px 16px; cursor:pointer; transition:all 0.2s; }
+  .dash-refresh-btn:hover { background:rgba(0,229,255,0.15); }
+  .dash-loading { text-align:center; padding:48px 0; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--muted); }
+  .dash-empty { text-align:center; padding:48px 0; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--muted); }
+  .dash-error { text-align:center; padding:32px 0; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--red); }
+
+  .assess-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; margin-bottom:16px; overflow:hidden; transition:border-color 0.2s; }
+  .assess-card:hover { border-color:rgba(0,229,255,0.3); }
+  .assess-card-header { display:flex; align-items:center; gap:14px; padding:16px 20px; cursor:pointer; }
+  .assess-card-name { font-size:16px; font-weight:700; color:var(--text); flex:1; }
+  .assess-card-meta { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+  .assess-grade { font-family:'Syne',sans-serif; font-size:22px; font-weight:800; width:48px; height:48px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:2px solid; }
+  .assess-card-body { display:none; padding:0 20px 20px; border-top:1px solid var(--border); }
+  .assess-card.open .assess-card-body { display:block; }
+  .assess-score-row { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:16px 0 12px; }
+  .assess-big-score { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:var(--text); }
+  .assess-summary { font-size:13px; color:#94a3b8; line-height:1.7; margin-bottom:14px; }
+  .assess-q-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; margin-bottom:16px; }
+  .assess-q-item { background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 12px; }
+  .assess-q-title { font-size:11px; color:var(--muted); margin-bottom:4px; line-height:1.4; }
+  .assess-q-score { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; }
+  .assess-dl-btn { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; background:linear-gradient(135deg,var(--accent3) 0%,#f97316 100%); color:#000; border:none; border-radius:8px; padding:10px 22px; cursor:pointer; transition:opacity 0.2s,transform 0.1s; display:inline-flex; align-items:center; gap:8px; }
+  .assess-dl-btn:hover { opacity:0.9; transform:translateY(-1px); }
+  .dash-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:24px; }
+  .dash-stat { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:16px 20px; }
+  .dash-stat-label { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+  .dash-stat-val { font-family:'Syne',sans-serif; font-size:24px; font-weight:800; color:var(--accent); }
 
   ::-webkit-scrollbar { width:6px; height:6px; }
   ::-webkit-scrollbar-track { background:var(--bg); }
@@ -287,6 +330,7 @@
     <button class="tab-btn" onclick="switchTab('compiler',this)"><span>⚙️</span> Python Compiler</button>
     <button class="tab-btn" onclick="switchTab('answers',this)"><span>✅</span> Answers &amp; Solutions</button>
     <button class="tab-btn" id="resultsTabBtn" onclick="switchTab('results',this)" style="display:none;"><span>📊</span> Results</button>
+    <button class="tab-btn" onclick="switchTab('dashboard',this)"><span>📊</span> Results Dashboard</button>
   </div>
 </div>
 
@@ -345,6 +389,38 @@ print('Hello, eClerx!')"></textarea>
 <div id="results" class="tab-content">
   <div class="container" id="resultsContainer"></div>
 </div>
+
+<!-- RESULTS DASHBOARD TAB -->
+<div id="dashboard" class="tab-content">
+  <div class="container">
+    <!-- Gate: password protected -->
+    <div class="dash-gate" id="dashGate">
+      <div class="dash-gate-box">
+        <div style="font-size:32px;margin-bottom:12px;">📊</div>
+        <div class="dash-gate-title">Results Dashboard</div>
+        <div class="dash-gate-sub">// Interviewer access only</div>
+        <div class="dash-gate-field">
+          <label>Password</label>
+          <input type="password" id="dashPass" placeholder="••••••••••••" onkeydown="if(event.key==='Enter')unlockDashboard()" />
+        </div>
+        <button class="dash-gate-btn" onclick="unlockDashboard()">View Results →</button>
+        <div class="dash-gate-error" id="dashError">⚠ Incorrect password. Please try again.</div>
+      </div>
+    </div>
+
+    <!-- Dashboard content (shown after auth) -->
+    <div class="dash-content" id="dashContent">
+      <div class="dash-toolbar">
+        <span class="dash-toolbar-title">📊 All Candidate Assessments</span>
+        <span id="dashInterviewerLabel" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);"></span>
+        <button class="dash-refresh-btn" onclick="loadDashboard()">↻ Refresh</button>
+      </div>
+      <div class="dash-stats" id="dashStats"></div>
+      <div id="dashList"><div class="dash-loading">⏳ Loading assessments...</div></div>
+    </div>
+  </div>
+</div>
+
 
 <!-- SUBMIT BAR -->
 <div class="submit-bar" id="submitBar">
@@ -1880,9 +1956,6 @@ function autoSubmit() {
   if (submitted) return;
   showToast('⏰ Time is up! Assessment auto-submitted.','warn');
   submitted = true;
-  const btn = document.getElementById('mainSubmitBtn');
-  btn.textContent = '⚡ Generate Assessment Result';
-  btn.classList.add('btn-generate');
   document.querySelectorAll('.answer-textarea').forEach(ta => ta.setAttribute('readonly', true));
   setTimeout(() => generateAssessment(), 1500);
 }
@@ -1896,27 +1969,21 @@ document.addEventListener('focusin', function(e) {
 let submitted = false;
 
 function handleSubmitOrGenerate() {
-  if (!submitted) {
-    startTimer();
-    const tas = document.querySelectorAll('.answer-textarea');
-    let empty = 0;
-    tas.forEach(ta => { if (!ta.value.trim()) empty++; });
-    if (empty > 0) showToast(`⚠️ ${empty} question(s) unanswered. You can still submit.`, 'warn');
-    submitted = true;
-    clearInterval(timerInterval);
-    const btn = document.getElementById('mainSubmitBtn');
-    btn.textContent = '⚡ Generate Assessment Result';
-    btn.classList.add('btn-generate');
-    showToast('✅ Answers submitted! Click "Generate Assessment Result" to evaluate.','success');
-    document.querySelectorAll('.answer-textarea').forEach(ta => ta.setAttribute('readonly', true));
-  } else {
-    generateAssessment();
-  }
+  if (submitted) return;
+  startTimer();
+  const tas = document.querySelectorAll('.answer-textarea');
+  let empty = 0;
+  tas.forEach(ta => { if (!ta.value.trim()) empty++; });
+  if (empty > 0) showToast(`⚠️ ${empty} question(s) unanswered. Submitting anyway.`, 'warn');
+  submitted = true;
+  clearInterval(timerInterval);
+  document.querySelectorAll('.answer-textarea').forEach(ta => ta.setAttribute('readonly', true));
+  generateAssessment();
 }
 
 async function generateAssessment() {
   const btn = document.getElementById('mainSubmitBtn');
-  btn.textContent = '⏳ Analysing...';
+  btn.textContent = '⏳ Submitting...';
   btn.disabled = true;
   await new Promise(r => setTimeout(r, 150));
   try {
@@ -1932,9 +1999,9 @@ async function generateAssessment() {
     const result = scoreAssessment(candidateAnswers);
     storeAndShowResult(result, candidateAnswers, meta);
   } catch(err) {
-    btn.textContent = '⚡ Generate Assessment Result';
+    btn.textContent = 'Submit Answers';
     btn.disabled = false;
-    showToast('❌ Error generating assessment.','error');
+    showToast('❌ Submission error. Please try again.','error');
     console.error(err);
   }
 }
@@ -1968,14 +2035,16 @@ function scoreAssessment(candidateAnswers) {
 
   /* ══════════════════════════════════════════════════════
      SUPABASE INTEGRATION
-     Fill in your Supabase Project URL and Anon Key below.
-     These are safe to expose in frontend code.
+     SUPABASE_URL  → Settings > General > Reference ID
+                     format: https://YOUR-REF-ID.supabase.co
+     SUPABASE_KEY  → Settings > API Keys > Publishable key > default
+                     format: sb_publishable_XXXX...
      ══════════════════════════════════════════════════════ */
-  const SUPABASE_URL    = 'https://pvegafdltfuvdfevzyny.supabase.co';   // e.g. https://xyzxyz.supabase.co
-  const SUPABASE_ANON   = 'sb_publishable_BTQH0cN17hZiPYKQh2VppA_A5Qrgj3P';      // found in Settings > API
+  const SUPABASE_URL  = 'https://pvegafdltfuvdfevzyny.supabase.co';   // e.g. https://btqh0cn17xyz.supabase.co
+  const SUPABASE_KEY  = 'sb_publishable_BTQH0cN17hZiPYKQh2VppA_A5Qrgj3P';        // e.g. sb_publishable_BTQH0cN17...
 
   async function saveToSupabase(result, candidateAnswers, meta) {
-    if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL') return;
+    if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL' || !SUPABASE_KEY || SUPABASE_KEY === 'YOUR_PUBLISHABLE_KEY') return;
     try {
       // Build per-question score columns
       const qScores = {};
@@ -2005,8 +2074,8 @@ function scoreAssessment(candidateAnswers) {
         method:  'POST',
         headers: {
           'Content-Type':  'application/json',
-          'apikey':        SUPABASE_ANON,
-          'Authorization': 'Bearer ' + SUPABASE_ANON,
+          'apikey':        SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
           'Prefer':        'return=minimal'
         },
         body: JSON.stringify(payload)
@@ -2027,17 +2096,15 @@ function scoreAssessment(candidateAnswers) {
 
 function storeAndShowResult(result, candidateAnswers, meta) {
   buildResultsTab(result, candidateAnswers, meta);
-  // results tab kept hidden from candidate
   const btn = document.getElementById('mainSubmitBtn');
-  btn.textContent = '✅ Assessment Complete';
+  btn.textContent = '✅ Assessment Submitted';
   btn.style.background = 'rgba(16,185,129,0.2)';
   btn.style.color = '#10b981';
   btn.disabled = true;
   btn.onclick = null;
-  // Save to Supabase + download result file
+  // Save to Supabase only — no auto-download for candidate
   saveToSupabase(result, candidateAnswers, meta);
-  generateResultFile(result, candidateAnswers, meta);
-  showToast('✅ Assessment complete! Result file downloaded.', 'success');
+  showToast('✅ Assessment submitted successfully!', 'success');
 }
 
 function buildResultsTab(result, candidateAnswers, meta) {
@@ -2196,6 +2263,229 @@ function showToast(msg, type) {
   toast.textContent = msg;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 5000);
+}
+
+
+/* ══════════════════════════════════════════════════════
+   RESULTS DASHBOARD
+   ══════════════════════════════════════════════════════ */
+let dashUnlocked = false;
+let dashInterviewerName = '';
+
+function unlockDashboard() {
+  const p = document.getElementById('dashPass').value.trim();
+  const todayLong = getTodayMMDDYYYY();
+  const pm = p.match(/^([A-Za-z]+)_(\d{8})$/);
+  if (pm && pm[2] === todayLong) {
+    dashUnlocked = true;
+    dashInterviewerName = pm[1];
+    document.getElementById('dashGate').style.display = 'none';
+    document.getElementById('dashContent').style.display = 'block';
+    document.getElementById('dashInterviewerLabel').textContent = '// ' + dashInterviewerName;
+    loadDashboard();
+  } else {
+    const err = document.getElementById('dashError');
+    err.style.display = 'block';
+    document.getElementById('dashPass').value = '';
+  }
+}
+
+async function loadDashboard() {
+  if (!dashUnlocked) return;
+  const list = document.getElementById('dashList');
+  list.innerHTML = '<div class="dash-loading">⏳ Loading assessments...</div>';
+  document.getElementById('dashStats').innerHTML = '';
+
+  if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL') {
+    list.innerHTML = '<div class="dash-error">⚠ Supabase not configured. Add SUPABASE_URL and SUPABASE_KEY to the HTML.</div>';
+    return;
+  }
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/assessments?select=*&order=submitted_at.desc`, {
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const rows = await res.json();
+    renderDashboard(rows);
+  } catch(e) {
+    list.innerHTML = `<div class="dash-error">❌ Could not load data: ${e.message}<br><br>Make sure the RLS policy allows authenticated reads, or temporarily allow anon reads for testing.</div>`;
+  }
+}
+
+function renderDashboard(rows) {
+  const statsEl = document.getElementById('dashStats');
+  const listEl  = document.getElementById('dashList');
+
+  if (!rows || rows.length === 0) {
+    statsEl.innerHTML = '';
+    listEl.innerHTML = '<div class="dash-empty">No assessments submitted yet.</div>';
+    return;
+  }
+
+  // Stats
+  const avg = Math.round(rows.reduce((s,r) => s + (r.percentage||0), 0) / rows.length);
+  const topGrade = rows.filter(r => r.grade === 'A+' || r.grade === 'A').length;
+  statsEl.innerHTML = `
+    <div class="dash-stat"><div class="dash-stat-label">Total Assessments</div><div class="dash-stat-val">${rows.length}</div></div>
+    <div class="dash-stat"><div class="dash-stat-label">Avg Score</div><div class="dash-stat-val">${avg}%</div></div>
+    <div class="dash-stat"><div class="dash-stat-label">A / A+ Grades</div><div class="dash-stat-val">${topGrade}</div></div>
+    <div class="dash-stat"><div class="dash-stat-label">Today</div><div class="dash-stat-val">${rows.filter(r => r.submitted_at && r.submitted_at.startsWith(new Date().toISOString().slice(0,10))).length}</div></div>
+  `;
+
+  // Cards
+  const gradeColor = g => ({A:'#10b981','A+':'#10b981',B:'#00e5ff',C:'#f59e0b',D:'#f97316',F:'#ef4444'}[g]||'#64748b');
+  let html = '';
+  rows.forEach((r, idx) => {
+    const gc = gradeColor(r.grade);
+    const dt = r.submitted_at ? new Date(r.submitted_at).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    // Build per-question scores
+    let qItems = '';
+    for (let i = 1; i <= 12; i++) {
+      const k = 'q' + String(i).padStart(2,'0');
+      if (r[k+'_score'] != null) {
+        const sc = r[k+'_score'];
+        const bc = sc>=7?'#10b981':sc>=5?'#f59e0b':'#ef4444';
+        qItems += `<div class="assess-q-item">
+          <div class="assess-q-title">${r[k+'_title']||('Q'+String(i).padStart(2,'0'))}</div>
+          <div class="assess-q-score" style="color:${bc}">${sc}/10</div>
+        </div>`;
+      }
+    }
+
+    html += `
+    <div class="assess-card" id="acard-${idx}">
+      <div class="assess-card-header" onclick="document.getElementById('acard-${idx}').classList.toggle('open')">
+        <div class="assess-grade" style="color:${gc};border-color:${gc}">${r.grade||'—'}</div>
+        <div style="flex:1">
+          <div class="assess-card-name">${r.candidate_name||'—'}</div>
+          <div class="assess-card-meta">${r.interviewer||'—'} · ${dt}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:${gc}">${r.total_score||0}<span style="font-size:12px;color:var(--muted)">/120</span></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">${r.percentage||0}%</div>
+        </div>
+        <span style="font-size:18px;color:var(--muted);transition:transform 0.25s;" class="assess-toggle">▾</span>
+      </div>
+      <div class="assess-card-body">
+        <div class="assess-score-row">
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Interview Date</div>
+            <div style="font-size:14px;font-weight:600">${r.interview_date||'—'}</div>
+          </div>
+          <div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;">Attempted</div>
+            <div style="font-size:14px;font-weight:600">${r.questions_attempted||0} / 12</div>
+          </div>
+        </div>
+        <p class="assess-summary">${r.summary||''}</p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Question Breakdown</div>
+        <div class="assess-q-grid">${qItems}</div>
+        <button class="assess-dl-btn" onclick="downloadAssessment(${idx}, ${JSON.stringify(r).replace(/'/g,"&apos;")})">⬇ Download Assessment</button>
+      </div>
+    </div>`;
+  });
+  listEl.innerHTML = html;
+
+  // Toggle arrow rotation
+  document.querySelectorAll('.assess-card-header').forEach(h => {
+    h.addEventListener('click', () => {
+      const card = h.closest('.assess-card');
+      const arrow = h.querySelector('.assess-toggle');
+      if (arrow) arrow.style.transform = card.classList.contains('open') ? 'rotate(180deg)' : '';
+    });
+  });
+
+  // Store rows globally for download
+  window._dashRows = rows;
+}
+
+function downloadAssessment(idx, rowData) {
+  const r = window._dashRows ? window._dashRows[idx] : rowData;
+  if (!r) return;
+  const gc = ({A:'#10b981','A+':'#10b981',B:'#00e5ff',C:'#f59e0b',D:'#f97316',F:'#ef4444'})[r.grade]||'#64748b';
+
+  // Build per-question breakdown HTML
+  let qRows = '';
+  for (let i = 1; i <= 12; i++) {
+    const k = 'q' + String(i).padStart(2,'0');
+    if (r[k+'_score'] != null) {
+      const sc = r[k+'_score'];
+      const bc = sc>=7?'#10b981':sc>=5?'#f59e0b':'#ef4444';
+      const pct = (sc/10)*100;
+      qRows += `<div style="background:#151820;border:1px solid #2a3045;border-radius:8px;margin-bottom:10px;overflow:hidden;">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;background:rgba(0,0,0,0.2);">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:${bc};background:${bc}22;border:1px solid ${bc}44;padding:3px 8px;border-radius:4px;">Q${String(i).padStart(2,'0')}</span>
+          <span style="font-size:13px;font-weight:600;flex:1;color:#e2e8f0;">${r[k+'_title']||'Question '+i}</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:${bc};">${sc}/10</span>
+        </div>
+        <div style="padding:6px 18px 12px;">
+          <div style="background:#1c2030;border-radius:4px;height:5px;overflow:hidden;margin:6px 0;"><div style="width:${pct}%;height:100%;background:${bc};border-radius:4px;"></div></div>
+        </div>
+      </div>`;
+    }
+  }
+
+  // Parse answers if stored
+  let answersHtml = '';
+  if (r.answers_json) {
+    try {
+      const ans = JSON.parse(r.answers_json);
+      answersHtml = '<div style="margin-top:24px;"><div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#64748b;letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;">Candidate Answers</div>';
+      Object.entries(ans).forEach(([qid, txt]) => {
+        if (txt && txt.trim()) {
+          answersHtml += `<div style="background:#151820;border:1px solid #2a3045;border-radius:8px;margin-bottom:10px;padding:14px 18px;">
+            <div style="font-family:JetBrains Mono,monospace;font-size:10px;color:#00e5ff;margin-bottom:8px;">${qid}</div>
+            <pre style="font-size:12px;white-space:pre-wrap;word-break:break-word;color:#94a3b8;margin:0;">${txt.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+          </div>`;
+        }
+      });
+      answersHtml += '</div>';
+    } catch(e) {}
+  }
+
+  const dt = r.submitted_at ? new Date(r.submitted_at).toLocaleString('en-IN') : '—';
+  const fileContent = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${r.candidate_name} — Assessment</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>:root{--bg:#0d0f14;--surface:#151820;--border:#2a3045;--accent:#00e5ff;--text:#e2e8f0;--muted:#64748b;}
+*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);padding:32px 24px 64px;max-width:900px;margin:0 auto;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+</style></head><body style="position:relative;z-index:1;">
+<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#00e5ff;letter-spacing:3px;text-transform:uppercase;margin-bottom:16px;">📊 eClerx Assessment Result</div>
+<div style="background:#151820;border:1px solid #2a3045;border-radius:12px;padding:20px 24px;margin-bottom:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;">
+  <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Candidate</div><div style="font-size:18px;font-weight:700;">${r.candidate_name}</div></div>
+  <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Interview Date</div><div style="font-size:15px;font-weight:600;">${r.interview_date||'—'}</div></div>
+  <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Interviewer</div><div style="font-size:15px;font-weight:600;">${r.interviewer||'—'}</div></div>
+  <div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Submitted</div><div style="font-size:13px;color:#64748b;font-family:'JetBrains Mono',monospace;">${dt}</div></div>
+</div>
+<div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-bottom:28px;">
+  <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:${gc};border:3px solid ${gc};border-radius:12px;width:84px;height:84px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${r.grade}</div>
+  <div>
+    <div style="font-family:'Syne',sans-serif;font-size:30px;font-weight:800;">${r.total_score} <span style="font-size:16px;color:#64748b;">/ 120</span></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#64748b;">${r.percentage}%</div>
+    <p style="font-size:13px;color:#94a3b8;line-height:1.7;margin-top:8px;max-width:500px;">${r.summary||''}</p>
+  </div>
+</div>
+<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#64748b;letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;">Question Breakdown</div>
+${qRows}
+${answersHtml}
+</body></html>`;
+
+  const safeName = (r.candidate_name||'candidate').replace(/[^a-zA-Z0-9_\-]/g,'_');
+  const today = getTodayMMDDYY();
+  const blob = new Blob([fileContent], { type:'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${safeName}_${today}_assessment.html`;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+  showToast('⬇ Assessment downloaded!', 'success');
 }
 
 /* ══════════════════════════════════════════════════════
