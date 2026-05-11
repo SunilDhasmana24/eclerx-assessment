@@ -256,6 +256,52 @@ td { padding: 8px 12px; border: 1px solid var(--border); color: var(--text-2); v
 .scoring-ok { color: var(--amber); font-weight: 600; }
 .scoring-bad { color: var(--red); font-weight: 600; }
 hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
+
+/* ─── AUTH PAGE (Register / Login) ─── */
+.auth-page {
+  position: fixed; inset: 0; background: var(--off-white); z-index: 1000;
+  display: flex; align-items: stretch; min-height: 100vh;
+}
+.auth-sidebar {
+  width: 340px; background: #1c7ed6; flex-shrink: 0;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 48px 40px;
+}
+@media (max-width: 700px) { .auth-sidebar { display: none; } }
+.auth-sidebar-logo { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 3px; text-transform: uppercase; color: rgba(255,255,255,0.7); margin-bottom: 40px; }
+.auth-sidebar-title { font-size: 26px; font-weight: 600; color: #fff; line-height: 1.3; margin-bottom: 16px; }
+.auth-sidebar-sub { font-size: 14px; color: rgba(255,255,255,0.75); line-height: 1.7; margin-bottom: 40px; }
+.auth-sidebar-items { display: flex; flex-direction: column; gap: 14px; }
+.auth-sidebar-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.85); }
+.auth-sidebar-item-dot { width: 6px; height: 6px; background: rgba(255,255,255,0.5); border-radius: 50%; flex-shrink: 0; }
+.auth-main {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: 40px 24px;
+}
+.auth-card {
+  width: 100%; max-width: 420px; background: var(--white);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md); overflow: hidden;
+}
+.auth-tabs { display: flex; border-bottom: 1px solid var(--border); }
+.auth-tab {
+  flex: 1; padding: 14px; font-family: var(--sans); font-size: 14px;
+  font-weight: 500; border: none; background: var(--off-white);
+  color: var(--text-3); cursor: pointer; transition: all 0.15s;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.auth-tab.active { background: var(--white); color: var(--blue); border-bottom-color: var(--blue); }
+.auth-form { padding: 28px 28px 24px; }
+.auth-form-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.auth-form-sub { font-size: 13px; color: var(--text-3); margin-bottom: 24px; }
+.auth-success { display: none; padding: 28px; text-align: center; }
+.auth-success-icon { font-size: 40px; margin-bottom: 12px; }
+.auth-success-title { font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+.auth-success-sub { font-size: 13px; color: var(--text-3); line-height: 1.6; }
+.field-hint { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+.pw-strength { height: 3px; background: var(--border-light); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+.pw-strength-fill { height: 100%; border-radius: 2px; transition: width 0.3s, background 0.3s; }
+
 @media (max-width: 600px) {
   .q-io { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
@@ -267,34 +313,118 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 <body>
 
 <!-- ═══════════════════════════════════════════
-     GATE 1 — MAIN LOGIN (Eclerx_123456)
+     AUTH PAGE — REGISTER / LOGIN
 ═══════════════════════════════════════════ -->
-<div class="gate" id="mainGate">
-  <div class="gate-card">
-    <div class="gate-logo">eClerx · Assessment Portal</div>
-    <div class="gate-title">Sign In</div>
-    <div class="gate-sub">Enter your access password to continue.</div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="mainPass" placeholder="••••••••••" onkeydown="if(event.key==='Enter')mainLogin()" />
+<div class="auth-page" id="authPage">
+
+  <!-- Sidebar -->
+  <div class="auth-sidebar">
+    <div class="auth-sidebar-logo">eClerx · Assessment</div>
+    <div class="auth-sidebar-title">Python &amp; Web Scraping Technical Assessment</div>
+    <div class="auth-sidebar-sub">Designed for candidates with 3–9 years of experience in Python, web scraping, SQL, and data engineering.</div>
+    <div class="auth-sidebar-items">
+      <div class="auth-sidebar-item"><div class="auth-sidebar-item-dot"></div>12 randomly selected questions</div>
+      <div class="auth-sidebar-item"><div class="auth-sidebar-item-dot"></div>45-minute time limit</div>
+      <div class="auth-sidebar-item"><div class="auth-sidebar-item-dot"></div>Python, SQL, Regex, Scraping, Redis, MongoDB</div>
+      <div class="auth-sidebar-item"><div class="auth-sidebar-item-dot"></div>Results saved securely and reviewed by interviewer</div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="mainLogin()">Continue →</button>
-    <div class="error-msg" id="mainErr">Incorrect password. Please try again.</div>
   </div>
+
+  <!-- Main auth card -->
+  <div class="auth-main">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="atab-register" onclick="switchAuthTab('register')">Register</button>
+        <button class="auth-tab" id="atab-login" onclick="switchAuthTab('login')">Login</button>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="registerForm" class="auth-form">
+        <div class="auth-form-title">Create your account</div>
+        <div class="auth-form-sub">Register once, then log in to start the assessment.</div>
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="regName" placeholder="e.g. Vijay Sharma" />
+        </div>
+        <div class="field">
+          <label>Email Address</label>
+          <input type="email" id="regEmail" placeholder="e.g. vijay@example.com" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Phone Number</label>
+            <input type="tel" id="regPhone" placeholder="e.g. 9876543210" />
+          </div>
+          <div class="field">
+            <label>Years of Experience</label>
+            <select id="regExp">
+              <option value="">Select</option>
+              <option value="3-5 years">3–5 years</option>
+              <option value="5-7 years">5–7 years</option>
+              <option value="7-9 years">7–9 years</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Create Password</label>
+          <input type="password" id="regPass" placeholder="Min 6 characters" oninput="checkStrength(this.value)" />
+          <div class="pw-strength"><div class="pw-strength-fill" id="pwStrengthBar" style="width:0%;background:var(--red)"></div></div>
+          <div class="field-hint" id="pwStrengthText"></div>
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <input type="password" id="regPass2" placeholder="Re-enter password" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="registerCandidate()">Create Account →</button>
+        <div class="error-msg" id="regErr"></div>
+        <p style="margin-top:14px;font-size:13px;color:var(--text-3);text-align:center;">Already registered? <a href="#" onclick="switchAuthTab('login');return false;" style="color:var(--blue);text-decoration:none;">Log in →</a></p>
+      </div>
+
+      <!-- REGISTER SUCCESS -->
+      <div id="registerSuccess" class="auth-success">
+        <div class="auth-success-icon">✅</div>
+        <div class="auth-success-title">Account created!</div>
+        <div class="auth-success-sub">Registration successful. You can now log in to begin the assessment.</div>
+        <button class="btn btn-primary" style="margin-top:18px;" onclick="switchAuthTab('login')">Go to Login →</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="loginForm" class="auth-form hidden">
+        <div class="auth-form-title">Welcome back</div>
+        <div class="auth-form-sub">Log in with your registered email and password.</div>
+        <div class="field">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" placeholder="e.g. vijay@example.com" onkeydown="if(event.key==='Enter')candidateLogin()" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="loginPass" placeholder="••••••••••" onkeydown="if(event.key==='Enter')candidateLogin()" />
+        </div>
+        <button class="btn btn-primary btn-full" onclick="candidateLogin()">Log In &amp; Start Assessment →</button>
+        <div class="error-msg" id="loginErr"></div>
+        <p style="margin-top:14px;font-size:13px;color:var(--text-3);text-align:center;">New candidate? <a href="#" onclick="switchAuthTab('register');return false;" style="color:var(--blue);text-decoration:none;">Register →</a></p>
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════════════════════════
-     GATE 2 — CANDIDATE INTAKE
+     GATE 2 — PRE-ASSESSMENT BRIEFING
 ═══════════════════════════════════════════ -->
 <div class="gate hidden" id="intakeGate">
-  <div class="gate-card" style="max-width:480px">
+  <div class="gate-card" style="max-width:500px">
     <div class="gate-logo">eClerx · Assessment Portal</div>
-    <div class="gate-title">Candidate Details</div>
-    <div class="gate-sub">Fill in details before the assessment begins. 12 questions will be selected randomly.</div>
-    <div class="field">
-      <label>Candidate Full Name</label>
-      <input type="text" id="igName" placeholder="e.g. Vijay Sharma" />
+    <div class="gate-title">Ready to Begin?</div>
+    <div class="gate-sub">Logged in as <strong id="intakeNameDisplay">—</strong>. Confirm the details below before starting.</div>
+
+    <div style="background:var(--light);border:1px solid var(--border-light);border-radius:var(--radius);padding:14px 16px;margin-bottom:20px;font-size:13px;color:var(--text-2);line-height:1.8;">
+      <div><strong>Name:</strong> <span id="intakeSummaryName">—</span></div>
+      <div><strong>Email:</strong> <span id="intakeSummaryEmail">—</span></div>
+      <div><strong>Experience:</strong> <span id="intakeSummaryExp">—</span></div>
     </div>
+
     <div class="field-row">
       <div class="field">
         <label>Interview Date</label>
@@ -314,6 +444,11 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
         <option value="Mixed">Mixed — All levels</option>
       </select>
     </div>
+
+    <div style="background:var(--blue-light);border:1px solid var(--blue-border);border-radius:var(--radius);padding:12px 14px;margin-bottom:20px;font-size:13px;color:#1864ab;line-height:1.6;">
+      ℹ You will have <strong>45 minutes</strong> to answer <strong>12 questions</strong>. The timer starts when you begin typing your first answer. Once submitted, answers cannot be changed.
+    </div>
+
     <button class="btn btn-primary btn-full" onclick="startAssessment()">Begin Assessment →</button>
     <div class="error-msg" id="intakeErr">Please fill in all fields before starting.</div>
   </div>
@@ -433,8 +568,8 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 </div><!-- /shell -->
 
 <!-- Skulpt -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/skulpt/1.2.0/skulpt.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/skulpt/1.2.0/skulpt-stdlib.js"></script>
+<script src="https://skulpt.org/js/skulpt.min.js"></script>
+<script src="https://skulpt.org/js/skulpt-stdlib.js"></script>
 
 <script>
 'use strict';
@@ -716,31 +851,160 @@ function fmtDate(iso) {
 }
 
 /* ════════════════════════════════════════════════
-   GATE 1 — MAIN LOGIN
+   AUTH — REGISTER / LOGIN
+   Candidates are stored in localStorage as a simple
+   key-value store keyed by email. This works without
+   any backend and persists across sessions on same browser.
+   (Supabase candidate_profiles table used when configured)
 ════════════════════════════════════════════════ */
-function mainLogin() {
-  if (document.getElementById('mainPass').value === 'Eclerx_123456') {
-    document.getElementById('mainGate').classList.add('hidden');
-    document.getElementById('intakeGate').classList.remove('hidden');
-    setTimeout(()=>document.getElementById('igName').focus(),100);
+
+let registeredCandidate = null;   // set after successful login
+
+function switchAuthTab(tab) {
+  document.getElementById('atab-register').classList.toggle('active', tab==='register');
+  document.getElementById('atab-login').classList.toggle('active', tab==='login');
+  if (tab === 'register') {
+    document.getElementById('registerForm').classList.remove('hidden');
+    document.getElementById('registerSuccess').style.display = 'none';
+    document.getElementById('loginForm').classList.add('hidden');
+    setTimeout(()=>document.getElementById('regName').focus(), 100);
   } else {
-    document.getElementById('mainErr').style.display = 'block';
-    document.getElementById('mainPass').value = '';
+    document.getElementById('registerForm').classList.add('hidden');
+    document.getElementById('registerSuccess').style.display = 'none';
+    document.getElementById('loginForm').classList.remove('hidden');
+    setTimeout(()=>document.getElementById('loginEmail').focus(), 100);
   }
+}
+
+function checkStrength(pw) {
+  const bar  = document.getElementById('pwStrengthBar');
+  const text = document.getElementById('pwStrengthText');
+  if (!pw) { bar.style.width='0%'; text.textContent=''; return; }
+  let score = 0;
+  if (pw.length >= 6)  score++;
+  if (pw.length >= 10) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^a-zA-Z0-9]/.test(pw)) score++;
+  const levels = [
+    {w:'20%', bg:'var(--red)',   t:'Too short'},
+    {w:'40%', bg:'var(--red)',   t:'Weak'},
+    {w:'60%', bg:'var(--amber)', t:'Fair'},
+    {w:'80%', bg:'var(--amber)', t:'Good'},
+    {w:'100%',bg:'var(--green)', t:'Strong'},
+  ];
+  const l = levels[Math.max(0, score-1)];
+  bar.style.width = l.w; bar.style.background = l.bg;
+  text.textContent = l.t; text.style.color = l.bg;
+}
+
+function registerCandidate() {
+  const name  = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const phone = document.getElementById('regPhone').value.trim();
+  const exp   = document.getElementById('regExp').value;
+  const pass  = document.getElementById('regPass').value;
+  const pass2 = document.getElementById('regPass2').value;
+  const errEl = document.getElementById('regErr');
+  errEl.style.display = 'none';
+
+  if (!name || !email || !phone || !exp || !pass) {
+    errEl.textContent = 'Please fill in all fields.'; errEl.style.display = 'block'; return;
+  }
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = 'block'; return;
+  }
+  if (pass.length < 6) {
+    errEl.textContent = 'Password must be at least 6 characters.'; errEl.style.display = 'block'; return;
+  }
+  if (pass !== pass2) {
+    errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return;
+  }
+  // Check if already registered
+  const existing = localStorage.getItem('eclerx_candidate_' + email);
+  if (existing) {
+    errEl.textContent = 'An account with this email already exists. Please log in.'; errEl.style.display = 'block'; return;
+  }
+  // Store in localStorage
+  const profile = { name, email, phone, exp, pass, createdAt: Date.now() };
+  localStorage.setItem('eclerx_candidate_' + email, JSON.stringify(profile));
+  // Also save to Supabase if configured
+  saveProfileToSupabase(profile);
+  // Show success
+  document.getElementById('registerForm').classList.add('hidden');
+  document.getElementById('registerSuccess').style.display = 'block';
+}
+
+async function saveProfileToSupabase(profile) {
+  if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL') return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/candidate_profiles`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+SUPABASE_KEY, 'Prefer':'return=minimal' },
+      body: JSON.stringify({ name: profile.name, email: profile.email, phone: profile.phone, experience: profile.exp, registered_at: new Date().toISOString() })
+    });
+  } catch(e) { /* silently fail — localStorage is the primary store */ }
+}
+
+function candidateLogin() {
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass  = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.style.display = 'none';
+
+  if (!email || !pass) {
+    errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return;
+  }
+  const stored = localStorage.getItem('eclerx_candidate_' + email);
+  if (!stored) {
+    errEl.textContent = 'No account found with this email. Please register first.'; errEl.style.display = 'block'; return;
+  }
+  const profile = JSON.parse(stored);
+
+  // Check 3-hour expiry from account creation
+  const THREE_HOURS = 3 * 60 * 60 * 1000;
+  if (profile.createdAt && (Date.now() - profile.createdAt) > THREE_HOURS) {
+    localStorage.removeItem('eclerx_candidate_' + email);  // clean up expired account
+    errEl.textContent = 'Your account has expired (valid for 3 hours from registration). Please register again.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  if (profile.pass !== pass) {
+    errEl.textContent = 'Incorrect password. Please try again.'; errEl.style.display = 'block'; return;
+  }
+  // Successful login
+  registeredCandidate = profile;
+  document.getElementById('authPage').classList.add('hidden');
+  // Show intake gate pre-filled
+  document.getElementById('intakeGate').classList.remove('hidden');
+  document.getElementById('intakeNameDisplay').textContent = profile.name;
+  document.getElementById('intakeSummaryName').textContent  = profile.name;
+  document.getElementById('intakeSummaryEmail').textContent = profile.email;
+  document.getElementById('intakeSummaryExp').textContent   = profile.exp;
+  document.getElementById('igDate').value = new Date().toISOString().split('T')[0];
+  // Map experience to level
+  if      (profile.exp === '3-5 years') document.getElementById('igLevel').value = 'L1';
+  else if (profile.exp === '7-9 years') document.getElementById('igLevel').value = 'L2';
+  else                                   document.getElementById('igLevel').value = 'Mixed';
+  setTimeout(()=>document.getElementById('igInterviewer').focus(), 100);
 }
 
 /* ════════════════════════════════════════════════
    GATE 2 — INTAKE
 ════════════════════════════════════════════════ */
 function startAssessment() {
-  const name        = document.getElementById('igName').value.trim();
   const date        = document.getElementById('igDate').value.trim();
   const interviewer = document.getElementById('igInterviewer').value.trim();
   const level       = document.getElementById('igLevel').value;
-  if (!name || !date || !interviewer || !level) {
+  if (!date || !interviewer || !level) {
     document.getElementById('intakeErr').style.display = 'block'; return;
   }
-  candidateMeta = { name, date: fmtDate(date), rawDate: date, interviewer, level };
+  const name  = registeredCandidate ? registeredCandidate.name  : '—';
+  const email = registeredCandidate ? registeredCandidate.email : '—';
+  const phone = registeredCandidate ? registeredCandidate.phone : '—';
+  const exp   = registeredCandidate ? registeredCandidate.exp   : '—';
+  candidateMeta = { name, email, phone, exp, date: fmtDate(date), rawDate: date, interviewer, level };
   document.getElementById('intakeGate').classList.add('hidden');
   document.getElementById('shell').classList.remove('hidden');
   document.getElementById('tbName').textContent       = name;
@@ -1124,6 +1388,8 @@ async function saveToSupabase(result) {
     const payload = {
       submitted_at:        new Date().toISOString(),
       candidate_name:      candidateMeta.name,
+      candidate_email:     candidateMeta.email || '',
+      candidate_phone:     candidateMeta.phone || '',
       interview_date:      candidateMeta.date,
       interviewer:         candidateMeta.interviewer,
       experience_level:    candidateMeta.level,
@@ -1216,32 +1482,65 @@ function buildAnswersPanel() {
    COMPILER
 ════════════════════════════════════════════════ */
 function runCode() {
-  const code = document.getElementById('compilerCode').value;
+  const code = document.getElementById('compilerCode').value.trim();
   const out  = document.getElementById('compilerOut');
   const stat = document.getElementById('compilerStatus');
-  out.innerHTML = '<span style="color:#606060">Running...</span>';
+
+  if (!code) {
+    out.innerHTML = '<span style="color:#606060">// Nothing to run. Write some Python code first.</span>';
+    return;
+  }
+
+  out.innerHTML = '<span style="color:#606060">⏳ Running...</span>';
   stat.textContent = '';
+
   let outText = '';
+
+  function outf(text) {
+    outText += text;
+  }
+
+  function builtinRead(x) {
+    if (Sk.builtinFiles === undefined || Sk.builtinFiles.files[x] === undefined) {
+      throw "File not found: '" + x + "'";
+    }
+    return Sk.builtinFiles.files[x];
+  }
+
+  Sk.pre = 'output';
   Sk.configure({
-    output: t => { outText += t; },
-    read: x => {
-      if (Sk.builtinFiles?.files[x] === undefined) throw "File not found: '" + x + "'";
-      return Sk.builtinFiles.files[x];
-    },
-    execLimit: 10000
+    output:    outf,
+    read:      builtinRead,
+    execLimit: 30000,        // 30 seconds max
+    __future__: Sk.python3
   });
+
   const t = Date.now();
-  Sk.misceval.asyncToPromise(()=>Sk.importMainWithBody('<stdin>',false,code,true))
-    .then(()=>{
-      stat.innerHTML = `<span style="color:var(--green)">${Date.now()-t}ms</span>`;
-      out.innerHTML = outText
-        ? `<span class="ok">${escHtml(outText)}</span>`
-        : '<span style="color:#606060">// No output</span>';
-    })
-    .catch(e=>{
-      stat.innerHTML = `<span style="color:var(--red)">Error</span>`;
-      out.innerHTML = `<span class="err">${escHtml(e.toString())}</span>`;
-    });
+
+  var myPromise = Sk.misceval.asyncToPromise(function() {
+    return Sk.importMainWithBody('<stdin>', false, code, true);
+  });
+
+  myPromise.then(
+    function() {
+      const ms = Date.now() - t;
+      stat.innerHTML = '<span style="color:var(--green)">✓ ' + ms + 'ms</span>';
+      if (outText) {
+        out.innerHTML = '<span class="ok">' + escHtml(outText) + '</span>';
+      } else {
+        out.innerHTML = '<span style="color:#606060">// Code ran successfully with no output.</span>';
+      }
+    },
+    function(err) {
+      const ms = Date.now() - t;
+      stat.innerHTML = '<span style="color:var(--red)">Error</span>';
+      var msg = '';
+      if (err.toString) msg = err.toString();
+      else if (err.args && err.args.v) msg = err.args.v[0].v;
+      else msg = String(err);
+      out.innerHTML = '<span class="err">' + escHtml(msg) + '</span>';
+    }
+  );
 }
 function clearCompiler() {
   document.getElementById('compilerCode').value = '';
@@ -1471,8 +1770,8 @@ function toast(msg, type='ok') {
    INIT
 ════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('igDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('mainPass').focus();
+  // Auth page shown on load — focus register name field
+  setTimeout(()=>{ const el=document.getElementById('regName'); if(el) el.focus(); },100);
   updateTimerDisplay();
   // Also need to update Supabase schema to include reasoning columns
   // Run supabase_setup_v2.sql before deploying
