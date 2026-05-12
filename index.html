@@ -394,7 +394,7 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
           <input type="email" id="regInterviewerEmail" placeholder="e.g. name@eclerx.com" oninput="validateInterviewerEmail(this.value)" />
           <div class="field-hint" id="interviewerEmailHint"></div>
         </div>
-        <button class="btn btn-primary btn-full" onclick="registerCandidate()">Send OTP &amp; Continue →</button>
+        <button class="btn btn-primary btn-full" id="sendOtpBtn" onclick="registerCandidate()">Send OTP &amp; Continue →</button>
         <div class="error-msg" id="regErr"></div>
         <p style="margin-top:14px;font-size:13px;color:var(--text-3);text-align:center;">Already registered? <a href="#" onclick="switchAuthTab('login');return false;" style="color:var(--blue);text-decoration:none;">Log in →</a></p>
       </div>
@@ -952,9 +952,10 @@ function checkStrength(pw) {
    EMAILJS CONFIG
    1. Sign up free at emailjs.com
    2. Create a service (Gmail/Outlook/SMTP) → copy Service ID
-   3. Create an email template with variables:
-        {{otp_code}}, {{candidate_name}}, {{candidate_email}}, {{valid_minutes}}
-      Set "To email" as: {{to_email}}  (dynamic — any @eclerx.com address)
+   3. Create an email template with these EXACT variable names:
+        {{otp_code}}, {{candidate_name}}, {{candidate_email}}, {{valid_minutes}}, {{to_email}}
+      IMPORTANT — in the template "To Email" field type:  {{to_email}}
+      (This makes the recipient dynamic — any @eclerx.com address entered by candidate)
    4. Copy Public Key from Account → API Keys
    5. Fill in below:
 ════════════════════════════════════════════════ */
@@ -1024,46 +1025,63 @@ function registerCandidate() {
 }
 
 async function sendOTP(candidateName, candidateEmail, recipientEmail) {
-  const btn   = document.querySelector('#registerForm .btn-primary');
-  const errEl = document.getElementById('regErr');
-  btn.disabled = true;
-  btn.textContent = 'Sending OTP...';
+  // Safe btn reference — works whether form is visible or hidden
+  const sendBtn = document.getElementById('sendOtpBtn');
+  const errEl   = document.getElementById('regErr');
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending OTP...'; }
+  if (errEl)   { errEl.style.display = 'none'; }
 
-  currentOTP    = generateOTP();
-  otpExpiresAt  = Date.now() + OTP_VALID_MINUTES * 60 * 1000;
+  currentOTP   = generateOTP();
+  otpExpiresAt = Date.now() + OTP_VALID_MINUTES * 60 * 1000;
 
-  // EmailJS configured — send real email
+  const recipient = recipientEmail || otpRecipient;
+
   if (EMAILJS_PUBLIC_KEY !== 'YOUR_EMAILJS_PUBLIC_KEY') {
     try {
-      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        otp_code:        currentOTP,
-        candidate_name:  candidateName,
-        candidate_email: candidateEmail,
-        valid_minutes:   OTP_VALID_MINUTES,
-        to_email:        recipientEmail || otpRecipient
-      });
+      // Ensure emailjs is initialised — safe to call multiple times
+      if (typeof emailjs === 'undefined') throw new Error('EmailJS SDK not loaded. Check internet connection.');
+      try { emailjs.init(EMAILJS_PUBLIC_KEY); } catch(_) {}  // re-init is safe
+
+      console.log('[EmailJS] Sending to:', recipient, '| Service:', EMAILJS_SERVICE_ID, '| Template:', EMAILJS_TEMPLATE_ID);
+
+      const response = await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          otp_code:        currentOTP,
+          candidate_name:  candidateName,
+          candidate_email: candidateEmail,
+          valid_minutes:   String(OTP_VALID_MINUTES),
+          to_email:        recipient
+        }
+      );
+      console.log('[EmailJS] Send success — status:', response.status, '| text:', response.text);
     } catch(e) {
-      console.error('EmailJS error:', e);
-      errEl.textContent = 'Failed to send OTP email. Please try again.';
-      errEl.style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Create Account →';
+      console.error('[EmailJS] Send failed — full error:', e);
+      const detail = (e && e.text)    ? e.text
+                   : (e && e.message) ? e.message
+                   : (typeof e === 'string') ? e
+                   : JSON.stringify(e);
+      if (errEl) {
+        errEl.innerHTML = '<strong>Failed to send OTP.</strong> Reason: ' + detail
+          + '<br><small style="color:#666">Open F12 → Console for full details. Common fixes: check Service ID, Template ID, and Public Key are correct in the HTML file.</small>';
+        errEl.style.display = 'block';
+      }
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
       return;
     }
   } else {
-    // EmailJS not yet configured — show OTP in console for testing
+    // DEV MODE — EmailJS not configured, show OTP in console
     console.log('%c[DEV MODE] OTP: ' + currentOTP, 'background:#1c7ed6;color:#fff;padding:4px 8px;border-radius:3px;font-size:14px;font-weight:bold;');
-    console.log('Configure EmailJS to send real OTP emails.');
+    console.log('[DEV MODE] Would send to:', recipient);
+    console.log('[DEV MODE] Fill in EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY to send real emails.');
   }
 
-  btn.disabled = false;
-  btn.textContent = 'Create Account →';
+  if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
 
-  // Switch to OTP step
+  // Show OTP step
   document.getElementById('registerForm').classList.add('hidden');
-  // Update display with actual recipient
-  const recip = recipientEmail || otpRecipient || '—';
+  const recip = recipient || '—';
   const d1 = document.getElementById('otpRecipientDisplay');
   const d2 = document.getElementById('otpRecipientBox');
   if (d1) d1.textContent = recip;
@@ -1154,10 +1172,14 @@ function startOTPTimer() {
 function resendOTP() {
   if (!pendingProfile) return;
   clearOTPInputs();
-  document.getElementById('otpErr').style.display = 'none';
-  document.getElementById('otpResendBtn').disabled = true;
-  document.getElementById('otpResendBtn').textContent = 'Sending...';
-  sendOTP(pendingProfile.name, pendingProfile.email, pendingProfile.interviewerEmail || otpRecipient);
+  const otpErrEl = document.getElementById('otpErr');
+  const resendBtn = document.getElementById('otpResendBtn');
+  if (otpErrEl)  otpErrEl.style.display = 'none';
+  if (resendBtn) { resendBtn.disabled = true; resendBtn.textContent = 'Sending...'; }
+  sendOTP(pendingProfile.name, pendingProfile.email, pendingProfile.interviewerEmail || otpRecipient)
+    .then(() => {
+      if (resendBtn) resendBtn.textContent = 'Resend OTP';
+    });
 }
 
 function backToRegister() {
@@ -2181,6 +2203,28 @@ function toast(msg, type='ok') {
 document.addEventListener('DOMContentLoaded', () => {
   // Auth page shown on load — focus register name field
   setTimeout(()=>{ const el=document.getElementById('regName'); if(el) el.focus(); },100);
+
+  // Init EmailJS once on page load
+  // Uses string form — compatible with all EmailJS SDK versions including free plan
+  if (EMAILJS_PUBLIC_KEY !== 'YOUR_EMAILJS_PUBLIC_KEY') {
+    const waitForEmailJS = setInterval(() => {
+      if (typeof emailjs !== 'undefined') {
+        clearInterval(waitForEmailJS);
+        try {
+          emailjs.init(EMAILJS_PUBLIC_KEY);  // string form — works on free plan
+          console.log('[EmailJS] Ready.');
+        } catch(e) {
+          try {
+            emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });  // object form fallback
+            console.log('[EmailJS] Ready (object form).');
+          } catch(e2) {
+            console.warn('[EmailJS] Init failed:', e2);
+          }
+        }
+      }
+    }, 100);
+    setTimeout(() => clearInterval(waitForEmailJS), 5000); // give up after 5s
+  }
   updateTimerDisplay();
   // Also need to update Supabase schema to include reasoning columns
   // Run supabase_setup_v2.sql before deploying
