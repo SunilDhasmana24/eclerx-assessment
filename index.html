@@ -617,6 +617,7 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 </div><!-- /shell -->
 
 <!-- Skulpt -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://skulpt.org/js/skulpt.min.js"></script>
 <script src="https://skulpt.org/js/skulpt-stdlib.js"></script>
 
@@ -1034,57 +1035,49 @@ async function sendOTP(candidateName, candidateEmail, recipientEmail) {
 
   const recipient = recipientEmail || otpRecipient;
 
-  if (EMAILJS_PUBLIC_KEY !== 'YOUR_EMAILJS_PUBLIC_KEY') {
-    try {
-      /* ── EmailJS REST API — no SDK needed, no CORS issues ──
-         Docs: https://www.emailjs.com/docs/rest-api/send/
-         This bypasses the JS SDK entirely and calls the API directly.
-         Works from any domain including GitHub Pages on free plan. */
-      const payload = {
-        service_id:  EMAILJS_SERVICE_ID,
-        template_id: EMAILJS_TEMPLATE_ID,
-        user_id:     EMAILJS_PUBLIC_KEY,
-        template_params: {
-          otp_code:        currentOTP,
-          candidate_name:  candidateName,
-          candidate_email: candidateEmail,
-          interviewer_email: recipient,
-          valid_minutes:   String(OTP_VALID_MINUTES)
+  try {
+    // Wait for SDK to be available (handles async script loading)
+    await new Promise((resolve, reject) => {
+      const check = setInterval(() => {
+        if (typeof emailjs !== 'undefined') {
+          clearInterval(check);
+          resolve();
         }
-      };
+      }, 50);
+      setTimeout(() => { clearInterval(check); reject(new Error('EmailJS SDK did not load. Check your internet connection.')); }, 8000);
+    });
 
-      console.log('[OTP] Sending via REST API to:', recipient);
+    // Initialise with public key
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
-      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify(payload)
-      });
+    console.log('[OTP] Sending — Service:', EMAILJS_SERVICE_ID, '| Template:', EMAILJS_TEMPLATE_ID, '| To:', recipient);
 
-      if (res.ok) {
-        console.log('[OTP] Sent successfully. Status:', res.status);
-      } else {
-        const errText = await res.text();
-        throw new Error('EmailJS API error ' + res.status + ': ' + errText);
+    const response = await emailjs.send(
+      EMAILJS_SERVICE_ID,
+      EMAILJS_TEMPLATE_ID,
+      {
+        otp_code:          currentOTP,
+        candidate_name:    candidateName,
+        candidate_email:   candidateEmail,
+        interviewer_email: recipient,
+        valid_minutes:     String(OTP_VALID_MINUTES)
       }
+    );
 
-    } catch(e) {
-      console.error('[OTP] Send failed:', e);
-      const msg = (e && e.message) ? e.message : String(e);
-      if (errEl) {
-        errEl.innerHTML = '<strong>Could not send OTP.</strong> ' + msg
-          + '<br><small style="color:var(--text-3);">Check that Service ID, Template ID, and Public Key in the HTML file match your EmailJS dashboard.</small>';
-        errEl.style.display = 'block';
-      }
-      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
-      return;
+    console.log('[OTP] Sent successfully:', response.status, response.text);
+
+  } catch(e) {
+    console.error('[OTP] Send failed:', e);
+    const msg = (e && e.text) ? e.text
+              : (e && e.message) ? e.message
+              : String(e);
+    if (errEl) {
+      errEl.innerHTML = '<strong>Could not send OTP.</strong> ' + msg
+        + '<br><small style="color:var(--text-3);">Open F12 → Console for full error details.</small>';
+      errEl.style.display = 'block';
     }
-
-  } else {
-    // DEV MODE — credentials not filled in yet, print OTP to console
-    console.log('%c[DEV] OTP: ' + currentOTP, 'background:#1c7ed6;color:#fff;padding:6px 12px;border-radius:4px;font-size:16px;font-weight:bold;');
-    console.log('[DEV] Recipient would be:', recipient);
-    console.warn('[DEV] Fill in EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY to send real emails.');
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
+    return;
   }
 
   if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
@@ -2214,7 +2207,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auth page shown on load — focus register name field
   setTimeout(()=>{ const el=document.getElementById('regName'); if(el) el.focus(); },100);
 
-  // EmailJS: using REST API directly — no SDK init needed
+  // EmailJS SDK loaded via script tag — init happens inside sendOTP
   updateTimerDisplay();
   // Also need to update Supabase schema to include reasoning columns
   // Run supabase_setup_v2.sql before deploying
