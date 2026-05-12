@@ -617,7 +617,6 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 </div><!-- /shell -->
 
 <!-- Skulpt -->
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://skulpt.org/js/skulpt.min.js"></script>
 <script src="https://skulpt.org/js/skulpt-stdlib.js"></script>
 
@@ -948,20 +947,6 @@ function checkStrength(pw) {
   text.textContent = l.t; text.style.color = l.bg;
 }
 
-/* ════════════════════════════════════════════════
-   EMAILJS CONFIG
-   1. Sign up free at emailjs.com
-   2. Create a service (Gmail/Outlook/SMTP) → copy Service ID
-   3. Create an email template with these EXACT variable names:
-        {{otp_code}}, {{candidate_name}}, {{candidate_email}}, {{valid_minutes}}, {{to_email}}
-      IMPORTANT — in the template "To Email" field type:  {{to_email}}
-      (This makes the recipient dynamic — any @eclerx.com address entered by candidate)
-   4. Copy Public Key from Account → API Keys
-   5. Fill in below:
-════════════════════════════════════════════════ */
-const EMAILJS_SERVICE_ID  = 'service_2thi1jy';
-const EMAILJS_TEMPLATE_ID = 'template_ywm1rwd';
-const EMAILJS_PUBLIC_KEY  = 'FmdC0rZzEBR-jfCNA';
 let otpRecipient = '';   // set from interviewer email field on registration form
 const OTP_VALID_MINUTES   = 10;
 
@@ -1035,49 +1020,61 @@ async function sendOTP(candidateName, candidateEmail, recipientEmail) {
 
   const recipient = recipientEmail || otpRecipient;
 
-  try {
-    // Wait for SDK to be available (handles async script loading)
-    await new Promise((resolve, reject) => {
-      const check = setInterval(() => {
-        if (typeof emailjs !== 'undefined') {
-          clearInterval(check);
-          resolve();
-        }
-      }, 50);
-      setTimeout(() => { clearInterval(check); reject(new Error('EmailJS SDK did not load. Check your internet connection.')); }, 8000);
-    });
+  if (RESEND_API_KEY === 're_YSg8Hnes_CkUZ51RJQzhNwho3b7DUd6o1') {
+    // DEV MODE — Resend not configured yet, show OTP in console
+    console.log('%c[DEV] OTP: ' + currentOTP, 'background:#1c7ed6;color:#fff;padding:6px 12px;border-radius:4px;font-size:16px;font-weight:bold;');
+    console.log('[DEV] Would send to:', recipient, '| Configure RESEND_API_KEY to send real emails.');
+  } else {
+    try {
+      console.log('[OTP] Sending via Resend to:', recipient);
 
-    // Initialise with public key
-    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      const res = await fetch('https://api.resend.com/emails', {
+        method:  'POST',
+        headers: {
+          'Authorization': 'Bearer ' + RESEND_API_KEY,
+          'Content-Type':  'application/json'
+        },
+        body: JSON.stringify({
+          from:    'eClerx Assessment <' + RESEND_FROM + '>',
+          to:      [recipient],
+          subject: 'eClerx Assessment OTP for ' + candidateName,
+          html:
+            '<div style="font-family:sans-serif;max-width:480px;padding:32px 24px;">' +
+            '<h2 style="margin:0 0 8px;font-size:20px;">eClerx Assessment OTP</h2>' +
+            '<p style="color:#555;margin:0 0 24px;">A candidate has registered and requires OTP verification.</p>' +
+            '<table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;">' +
+            '<tr><td style="padding:6px 0;color:#888;">Candidate</td><td style="padding:6px 0;font-weight:600;">' + candidateName + '</td></tr>' +
+            '<tr><td style="padding:6px 0;color:#888;">Email</td><td style="padding:6px 0;">' + candidateEmail + '</td></tr>' +
+            '<tr><td style="padding:6px 0;color:#888;">Interviewer email</td><td style="padding:6px 0;">' + recipient + '</td></tr>' +
+            '</table>' +
+            '<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:20px;text-align:center;margin-bottom:24px;">' +
+            '<p style="margin:0 0 6px;font-size:13px;color:#0369a1;">OTP Code — valid for ' + OTP_VALID_MINUTES + ' minutes</p>' +
+            '<p style="margin:0;font-size:36px;font-weight:700;letter-spacing:8px;color:#0c4a6e;">' + currentOTP + '</p>' +
+            '</div>' +
+            '<p style="color:#888;font-size:13px;margin:0;">Share this OTP with the candidate to complete their registration.</p>' +
+            '</div>'
+        })
+      });
 
-    console.log('[OTP] Sending — Service:', EMAILJS_SERVICE_ID, '| Template:', EMAILJS_TEMPLATE_ID, '| To:', recipient);
-
-    const response = await emailjs.send(
-      EMAILJS_SERVICE_ID,
-      EMAILJS_TEMPLATE_ID,
-      {
-        otp_code:          currentOTP,
-        candidate_name:    candidateName,
-        candidate_email:   candidateEmail,
-        interviewer_email: recipient,
-        valid_minutes:     String(OTP_VALID_MINUTES)
+      if (res.ok) {
+        const data = await res.json();
+        console.log('[OTP] Sent successfully. ID:', data.id);
+      } else {
+        const errData = await res.json().catch(() => ({ message: res.statusText }));
+        throw new Error('Resend error ' + res.status + ': ' + (errData.message || errData.name || JSON.stringify(errData)));
       }
-    );
 
-    console.log('[OTP] Sent successfully:', response.status, response.text);
-
-  } catch(e) {
-    console.error('[OTP] Send failed:', e);
-    const msg = (e && e.text) ? e.text
-              : (e && e.message) ? e.message
-              : String(e);
-    if (errEl) {
-      errEl.innerHTML = '<strong>Could not send OTP.</strong> ' + msg
-        + '<br><small style="color:var(--text-3);">Open F12 → Console for full error details.</small>';
-      errEl.style.display = 'block';
+    } catch(e) {
+      console.error('[OTP] Send failed:', e);
+      const msg = (e && e.message) ? e.message : String(e);
+      if (errEl) {
+        errEl.innerHTML = '<strong>Could not send OTP.</strong> ' + msg
+          + '<br><small style="color:var(--text-3);">Check RESEND_API_KEY and RESEND_FROM in the HTML file. Open F12 → Console for details.</small>';
+        errEl.style.display = 'block';
+      }
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
+      return;
     }
-    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
-    return;
   }
 
   if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
@@ -2207,7 +2204,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auth page shown on load — focus register name field
   setTimeout(()=>{ const el=document.getElementById('regName'); if(el) el.focus(); },100);
 
-  // EmailJS SDK loaded via script tag — init happens inside sendOTP
+  // Resend is used for OTP emails — no SDK needed, uses fetch API directly
   updateTimerDisplay();
   // Also need to update Supabase schema to include reasoning columns
   // Run supabase_setup_v2.sql before deploying
