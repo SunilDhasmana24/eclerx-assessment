@@ -1044,12 +1044,14 @@ async function sendOTP(candidateName, candidateEmail, recipientEmail) {
         service_id:  EMAILJS_SERVICE_ID,
         template_id: EMAILJS_TEMPLATE_ID,
         user_id:     EMAILJS_PUBLIC_KEY,
+        accessToken: EMAILJS_PUBLIC_KEY,
         template_params: {
+          to_email:        recipient,
+          reply_to:        recipient,
           otp_code:        currentOTP,
           candidate_name:  candidateName,
           candidate_email: candidateEmail,
-          valid_minutes:   String(OTP_VALID_MINUTES),
-          to_email:        recipient
+          valid_minutes:   String(OTP_VALID_MINUTES)
         }
       };
 
