@@ -527,12 +527,16 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
         <div class="compiler-header">
           <span class="compiler-title">Python Compiler</span>
           <div class="compiler-btn-row">
+            <select id="engineSelect" style="font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--white);color:var(--text);outline:none;cursor:pointer;">
+              <option value="piston">Piston (Full Python 3 — supports all libraries)</option>
+              <option value="skulpt">Skulpt (Browser — no internet needed)</option>
+            </select>
             <button class="btn btn-primary" onclick="runCode()">▶ Run</button>
             <button class="btn btn-secondary" onclick="clearCompiler()">Clear</button>
           </div>
         </div>
         <div class="compiler-body">
-          <textarea class="compiler-textarea" id="compilerCode" placeholder="# Write your Python code here and click Run&#10;&#10;print('Hello!')"></textarea>
+          <textarea class="compiler-textarea" id="compilerCode" placeholder="# Write your Python code here and click Run&#10;&#10;print('Hello, eClerx!')"></textarea>
           <div class="compiler-output-wrap">
             <div class="compiler-output-label">
               <span>Output</span>
@@ -540,8 +544,8 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
             </div>
             <div class="compiler-output" id="compilerOut"><span style="color:#606060">// Output will appear here after running...</span></div>
           </div>
-          <div class="compiler-note">
-            ⚠ Runs Python in your browser via Skulpt. Supports: <code>re</code>, <code>collections</code>, <code>json</code>, <code>math</code>, <code>random</code>, <code>string</code>. External libraries (requests, pandas, selenium) are not available here — describe their usage in your written answer.
+          <div class="compiler-note" id="compilerNote">
+            🌐 <strong>Piston mode</strong> — runs real Python 3.10 on a remote server. Supports <code>requests</code>, <code>pandas</code>, <code>re</code>, <code>collections</code>, <code>json</code>, and all standard libraries. No API key needed. Note: <code>selenium</code> and browser automation are not available.
           </div>
         </div>
       </div>
@@ -577,8 +581,8 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 /* ════════════════════════════════════════════════
    SUPABASE CONFIG — fill these in
 ════════════════════════════════════════════════ */
-const SUPABASE_URL = 'https://pvegafdltfuvdfevzyny.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_BTQH0cN17hZiPYKQh2VppA_A5Qrgj3P';
+const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
+const SUPABASE_KEY = 'YOUR_PUBLISHABLE_KEY';
 
 /* ════════════════════════════════════════════════
    QUESTION BANK — exact from PDF, validated
@@ -1380,9 +1384,11 @@ async function saveToSupabase(result) {
     let qi = 1;
     selectedQs.forEach(q => {
       const k = 'q' + String(qi).padStart(2,'0');
-      qScores[k+'_score'] = result.scores[q.id]?.score || 0;
-      qScores[k+'_title'] = q.q.substring(0,80);
-      qScores[k+'_reasoning'] = result.scores[q.id]?.reasoning || '';
+      qScores[k+'_score']       = result.scores[q.id]?.score || 0;
+      qScores[k+'_title']       = q.q.substring(0,80);
+      qScores[k+'_reasoning']   = result.scores[q.id]?.reasoning || '';
+      qScores[k+'_model_answer'] = (q.modelAnswer || '').replace(/<[^>]+>/g,'');  // strip HTML tags for storage
+      qScores[k+'_model_code']   = q.modelCode || '';
       qi++;
     });
     const payload = {
@@ -1481,10 +1487,27 @@ function buildAnswersPanel() {
 /* ════════════════════════════════════════════════
    COMPILER
 ════════════════════════════════════════════════ */
+/* Engine note updater */
+document.addEventListener('DOMContentLoaded', function() {
+  const sel = document.getElementById('engineSelect');
+  if (sel) sel.addEventListener('change', updateEngineNote);
+});
+function updateEngineNote() {
+  const engine = document.getElementById('engineSelect') ? document.getElementById('engineSelect').value : 'piston';
+  const note = document.getElementById('compilerNote');
+  if (!note) return;
+  if (engine === 'piston') {
+    note.innerHTML = '🌐 <strong>Piston mode</strong> — runs real Python 3.10 on a remote server. Supports <code>requests</code>, <code>pandas</code>, <code>re</code>, <code>collections</code>, <code>json</code>, and all standard libraries. Note: <code>selenium</code> and browser automation are not available.';
+  } else {
+    note.innerHTML = '💻 <strong>Browser mode (Skulpt)</strong> — runs offline in your browser. Supports <code>re</code>, <code>collections</code>, <code>json</code>, <code>math</code>, <code>random</code>. External libraries like <code>requests</code> and <code>pandas</code> are <strong>not available</strong> — switch to Piston for those.';
+  }
+}
+
 function runCode() {
-  const code = document.getElementById('compilerCode').value.trim();
-  const out  = document.getElementById('compilerOut');
-  const stat = document.getElementById('compilerStatus');
+  const code   = document.getElementById('compilerCode').value.trim();
+  const out    = document.getElementById('compilerOut');
+  const stat   = document.getElementById('compilerStatus');
+  const engine = document.getElementById('engineSelect') ? document.getElementById('engineSelect').value : 'piston';
 
   if (!code) {
     out.innerHTML = '<span style="color:#606060">// Nothing to run. Write some Python code first.</span>';
@@ -1494,12 +1517,74 @@ function runCode() {
   out.innerHTML = '<span style="color:#606060">⏳ Running...</span>';
   stat.textContent = '';
 
-  let outText = '';
+  if (engine === 'piston') {
+    runWithPiston(code, out, stat);
+  } else {
+    runWithSkulpt(code, out, stat);
+  }
+}
 
-  function outf(text) {
-    outText += text;
+/* ── PISTON API — full Python 3, all libraries ── */
+async function runWithPiston(code, out, stat) {
+  const t = Date.now();
+  try {
+    const res = await fetch('https://emkc.org/api/v2/piston/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        language: 'python',
+        version:  '3.10.0',
+        files: [{ name: 'main.py', content: code }],
+        stdin: '',
+        args: [],
+        compile_timeout: 10000,
+        run_timeout: 15000
+      })
+    });
+    if (!res.ok) throw new Error('Piston API returned ' + res.status);
+    const data = await res.json();
+    const ms   = Date.now() - t;
+    const stdout = (data.run && data.run.stdout) || '';
+    const stderr = (data.run && data.run.stderr) || '';
+    const output = stdout + stderr;
+    stat.innerHTML = '<span style="color:var(--green)">✓ ' + ms + 'ms</span>';
+    if (output.trim()) {
+      // Colour stderr lines red, stdout green
+      const lines = output.split('\n').map(line => {
+        if (stderr.includes(line) && line.trim()) {
+          return '<span class="err">' + escHtml(line) + '</span>';
+        }
+        return '<span class="ok">' + escHtml(line) + '</span>';
+      });
+      out.innerHTML = lines.join('\n');
+    } else {
+      out.innerHTML = '<span style="color:#606060">// Code ran with no output.</span>';
+    }
+  } catch(e) {
+    stat.innerHTML = '<span style="color:var(--red)">Error</span>';
+    out.innerHTML = '<span class="err">Could not reach Piston API. Check your internet connection, or switch to Skulpt (Browser) mode.\n\n' + escHtml(e.message) + '</span>';
+  }
+}
+
+/* ── SKULPT — browser-only, no external libs ── */
+function runWithSkulpt(code, out, stat) {
+  // Intercept unsupported imports and give a helpful message
+  const unsupported = ['requests', 'pandas', 'selenium', 'playwright', 'scrapy',
+                       'bs4', 'beautifulsoup4', 'aiohttp', 'flask', 'django',
+                       'numpy', 'scipy', 'sklearn', 'sqlalchemy', 'pymongo',
+                       'redis', 'celery', 'urllib3', 'httpx', 'lxml'];
+  const importMatch = code.match(/^(?:import|from)\s+([\w]+)/m);
+  if (importMatch) {
+    const mod = importMatch[1].toLowerCase();
+    if (unsupported.includes(mod)) {
+      stat.innerHTML = '<span style="color:var(--amber)">⚠ Unsupported</span>';
+      out.innerHTML = '<span class="err">Module \''+escHtml(mod)+'\' is not available in browser (Skulpt) mode.\n\nSwitch to 🌐 Piston mode in the dropdown above to run code that uses '+escHtml(mod)+' and other external libraries.</span>';
+      return;
+    }
   }
 
+  let outText = '';
+  function outf(text) { outText += text; }
   function builtinRead(x) {
     if (Sk.builtinFiles === undefined || Sk.builtinFiles.files[x] === undefined) {
       throw "File not found: '" + x + "'";
@@ -1508,37 +1593,29 @@ function runCode() {
   }
 
   Sk.pre = 'output';
-  Sk.configure({
-    output:    outf,
-    read:      builtinRead,
-    execLimit: 30000,        // 30 seconds max
-    __future__: Sk.python3
-  });
+  Sk.configure({ output: outf, read: builtinRead, execLimit: 30000, __future__: Sk.python3 });
 
   const t = Date.now();
-
-  var myPromise = Sk.misceval.asyncToPromise(function() {
+  Sk.misceval.asyncToPromise(function() {
     return Sk.importMainWithBody('<stdin>', false, code, true);
-  });
-
-  myPromise.then(
+  }).then(
     function() {
       const ms = Date.now() - t;
       stat.innerHTML = '<span style="color:var(--green)">✓ ' + ms + 'ms</span>';
-      if (outText) {
-        out.innerHTML = '<span class="ok">' + escHtml(outText) + '</span>';
-      } else {
-        out.innerHTML = '<span style="color:#606060">// Code ran successfully with no output.</span>';
-      }
+      out.innerHTML = outText
+        ? '<span class="ok">' + escHtml(outText) + '</span>'
+        : '<span style="color:#606060">// Code ran with no output.</span>';
     },
     function(err) {
-      const ms = Date.now() - t;
       stat.innerHTML = '<span style="color:var(--red)">Error</span>';
-      var msg = '';
-      if (err.toString) msg = err.toString();
-      else if (err.args && err.args.v) msg = err.args.v[0].v;
-      else msg = String(err);
-      out.innerHTML = '<span class="err">' + escHtml(msg) + '</span>';
+      var msg = (err && err.args && err.args.v) ? err.args.v[0].v : err.toString();
+      // Catch module errors and give better message
+      if (msg && msg.toLowerCase().includes('no module named')) {
+        const modName = (msg.match(/No module named '?([\w]+)'?/i) || [])[1] || 'that module';
+        out.innerHTML = '<span class="err">Module \''+escHtml(modName)+'\' is not available in browser mode.\n\nSwitch to 🌐 Piston mode in the dropdown to use external libraries.</span>';
+      } else {
+        out.innerHTML = '<span class="err">' + escHtml(msg) + '</span>';
+      }
     }
   );
 }
@@ -1604,21 +1681,53 @@ function renderDashboard(rows) {
     const dt  = r.submitted_at ? new Date(r.submitted_at).toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
     const gc  = gradeClass(r.grade);
 
-    // Build question rows with answers
+    // Build question rows with answers + model answers
     let qHtml = '';
     let ansMap = {};
     if (r.answers_json) { try { ansMap = JSON.parse(r.answers_json); } catch(e){} }
     const ansVals = Object.values(ansMap);
 
     for (let i=1;i<=12;i++) {
-      const k  = 'q'+String(i).padStart(2,'0');
+      const k           = 'q'+String(i).padStart(2,'0');
       if (r[k+'_score'] == null) continue;
-      const sc  = r[k+'_score'];
-      const bc  = scoreColor(sc);
-      const pct = (sc/10)*100;
-      const title = r[k+'_title']||('Question '+i);
-      const reasoning = r[k+'_reasoning']||'';
-      const ansText = (ansVals[i-1]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const sc          = r[k+'_score'];
+      const bc          = scoreColor(sc);
+      const pct         = (sc/10)*100;
+      const title       = r[k+'_title']  || ('Question '+i);
+      const reasoning   = r[k+'_reasoning']   || '';
+      const modelAnswer = r[k+'_model_answer'] || '';
+      const modelCode   = r[k+'_model_code']   || '';
+      const ansText     = (ansVals[i-1]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+      // Build scoring explanation — parse "Met" and "Not found" lines
+      let scoringHtml = '';
+      if (reasoning) {
+        const lines = reasoning.split('\n');
+        let metHtml = '', missedHtml = '';
+        lines.forEach(line => {
+          const l = line.trim();
+          if (!l) return;
+          if (l.startsWith('**Met:**') || l === '**Met:**') return;
+          if (l.startsWith('**Not found:**') || l === '**Not found:**') return;
+          if (l.startsWith('✓')) {
+            metHtml += `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px;font-size:12px;"><span style="color:var(--green);flex-shrink:0;">✓</span><span style="color:var(--text-2);">${escHtml(l.replace(/^✓\s*/,''))}</span></div>`;
+          } else if (l.startsWith('✗')) {
+            missedHtml += `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px;font-size:12px;"><span style="color:var(--red);flex-shrink:0;">✗</span><span style="color:var(--text-3);">${escHtml(l.replace(/^✗\s*/,''))}</span></div>`;
+          }
+        });
+        if (metHtml || missedHtml) {
+          scoringHtml = `<div style="padding:10px 14px;border-top:1px solid var(--border-light);display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">Why this score</div>
+              ${metHtml || '<span style="font-size:12px;color:var(--text-3);">—</span>'}
+            </div>
+            <div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;">What was missing</div>
+              ${missedHtml || '<span style="font-size:12px;color:var(--green);">All criteria met!</span>'}
+            </div>
+          </div>`;
+        }
+      }
 
       qHtml += `
       <div class="q-score-row">
@@ -1628,10 +1737,19 @@ function renderDashboard(rows) {
           <span class="q-score-val" style="color:${bc}">${sc}/10</span>
         </div>
         <div class="q-score-bar"><div class="q-score-bar-fill" style="width:${pct}%;background:${bc}"></div></div>
-        ${reasoning ? `<div style="padding:8px 14px;font-size:12px;color:var(--text-3);white-space:pre-line;border-top:1px solid var(--border-light);">${escHtml(reasoning)}</div>` : ''}
+
+        ${scoringHtml}
+
         ${ansText.trim()
           ? `<div class="q-answer-box"><div class="q-answer-label">Candidate's Answer</div><div class="q-answer-text">${ansText}</div></div>`
           : `<div class="q-no-answer">No answer provided</div>`}
+
+        ${modelAnswer || modelCode ? `
+        <div style="padding:10px 14px;border-top:1px solid var(--border-light);background:#f8fff9;">
+          <div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--green);margin-bottom:8px;">✓ Correct Answer</div>
+          ${modelAnswer ? `<div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:${modelCode?'10px':'0'}">${modelAnswer}</div>` : ''}
+          ${modelCode ? `<div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--text-3);margin-bottom:6px;margin-top:8px;">Model Code</div><pre style="background:var(--light);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.7;overflow-x:auto;white-space:pre;margin:0;color:var(--text-2);">${escHtml(modelCode)}</pre>` : ''}
+        </div>` : ''}
       </div>`;
     }
 
@@ -1692,24 +1810,69 @@ function downloadAssessment(idx) {
   for (let i=1;i<=12;i++) {
     const k = 'q'+String(i).padStart(2,'0');
     if (r[k+'_score']==null) continue;
-    const sc = r[k+'_score'];
-    const bc = sc>=7?'#2f9e44':sc>=5?'#e67700':'#e03131';
-    const pct = (sc/10)*100;
-    const title = (r[k+'_title']||'Question '+i).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const reasoning = (r[k+'_reasoning']||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const ansText = (ansVals[i-1]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const sc          = r[k+'_score'];
+    const bc          = sc>=7?'#2f9e44':sc>=5?'#e67700':'#e03131';
+    const pct         = (sc/10)*100;
+    const title       = (r[k+'_title']       ||'Question '+i).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const reasoning   = (r[k+'_reasoning']   ||'');
+    const modelAnswer = (r[k+'_model_answer'] ||'');
+    const modelCode   = (r[k+'_model_code']   ||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const ansText     = (ansVals[i-1]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    // Parse scoring lines
+    let metLines = '', missedLines = '';
+    if (reasoning) {
+      reasoning.split('\n').forEach(line => {
+        const l = line.trim();
+        if (!l || l.startsWith('**')) return;
+        if (l.startsWith('✓')) metLines    += '<div style="font-size:12px;color:#2f9e44;margin-bottom:3px;">'+l.replace(/</g,'&lt;')+'</div>';
+        else if (l.startsWith('✗')) missedLines += '<div style="font-size:12px;color:#e03131;margin-bottom:3px;">'+l.replace(/</g,'&lt;')+'</div>';
+      });
+    }
+
     qRows += `
-    <div style="border:1px solid #dee2e6;border-radius:8px;margin-bottom:12px;overflow:hidden;">
+    <div style="border:1px solid #dee2e6;border-radius:8px;margin-bottom:14px;overflow:hidden;font-family:'IBM Plex Sans',sans-serif;">
+
+      <!-- Header: Q number, title, score -->
       <div style="display:flex;align-items:center;gap:10px;padding:11px 16px;background:#f8f9fa;">
         <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;background:#e9ecef;padding:2px 7px;border-radius:3px;color:#495057;">Q${String(i).padStart(2,'0')}</span>
         <span style="font-size:13px;font-weight:500;flex:1;color:#212529;">${title}</span>
-        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:${bc};">${sc}/10</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:700;color:${bc};">${sc}/10</span>
       </div>
       <div style="height:4px;background:#e9ecef;"><div style="width:${pct}%;height:100%;background:${bc};"></div></div>
-      ${reasoning ? `<div style="padding:8px 16px;font-size:12px;color:#868e96;white-space:pre-line;border-bottom:1px solid #f1f3f5;">${reasoning}</div>` : ''}
+
+      <!-- Scoring explanation -->
+      ${(metLines||missedLines) ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #f1f3f5;">
+        <div style="padding:10px 16px;border-right:1px solid #f1f3f5;">
+          <div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#868e96;margin-bottom:6px;">Why this score</div>
+          ${metLines || '<span style="font-size:12px;color:#868e96;">—</span>'}
+        </div>
+        <div style="padding:10px 16px;">
+          <div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#868e96;margin-bottom:6px;">What was missing</div>
+          ${missedLines || '<span style="font-size:12px;color:#2f9e44;">All criteria met!</span>'}
+        </div>
+      </div>` : ''}
+
+      <!-- Candidate answer -->
       ${ansText.trim()
-        ? `<div style="padding:10px 16px;"><div style="font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#868e96;margin-bottom:6px;">Candidate's Answer</div><pre style="font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.6;background:#f8f9fa;border:1px solid #e9ecef;border-radius:4px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;color:#495057;margin:0;">${ansText}</pre></div>`
-        : `<div style="padding:8px 16px;font-size:12px;color:#adb5bd;font-style:italic;">No answer provided</div>`}
+        ? `<div style="padding:10px 16px;border-bottom:1px solid #f1f3f5;">
+            <div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#868e96;margin-bottom:6px;">Candidate's Answer</div>
+            <pre style="font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.6;background:#f8f9fa;border:1px solid #e9ecef;border-radius:4px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;color:#495057;margin:0;">${ansText}</pre>
+           </div>`
+        : `<div style="padding:8px 16px;font-size:12px;color:#adb5bd;font-style:italic;border-bottom:1px solid #f1f3f5;">No answer provided</div>`}
+
+      <!-- Correct / model answer -->
+      ${modelAnswer || modelCode ? `
+      <div style="padding:12px 16px;background:#f0fdf4;">
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#2f9e44;margin-bottom:8px;">✓ Correct Answer</div>
+        ${modelAnswer ? `<div style="font-size:13px;color:#374151;line-height:1.7;margin-bottom:${modelCode?'10px':'0'}">${modelAnswer.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>` : ''}
+        ${modelCode ? `
+          <div style="font-size:10px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#868e96;margin:8px 0 6px;">Model Code</div>
+          <pre style="font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.7;background:#fff;border:1px solid #d1fae5;border-radius:4px;padding:12px 14px;white-space:pre;overflow-x:auto;color:#374151;margin:0;">${modelCode}</pre>
+        ` : ''}
+      </div>` : ''}
+
     </div>`;
   }
 
