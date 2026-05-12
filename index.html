@@ -257,6 +257,20 @@ td { padding: 8px 12px; border: 1px solid var(--border); color: var(--text-2); v
 .scoring-bad { color: var(--red); font-weight: 600; }
 hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 
+
+/* ─── OTP STEP ─── */
+.otp-inputs { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
+.otp-digit {
+  width: 44px; height: 52px; text-align: center; font-size: 22px; font-weight: 700;
+  font-family: var(--mono); border: 2px solid var(--border); border-radius: var(--radius);
+  outline: none; background: var(--white); color: var(--text); transition: border-color 0.15s;
+}
+.otp-digit:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(28,126,214,0.1); }
+.otp-timer { font-family: var(--mono); font-size: 13px; color: var(--text-3); text-align: center; margin-bottom: 12px; }
+.otp-timer.expired { color: var(--red); }
+.otp-resend { background: none; border: none; color: var(--blue); font-size: 13px; cursor: pointer; text-decoration: underline; padding: 0; }
+.otp-resend:disabled { color: var(--text-3); cursor: not-allowed; text-decoration: none; }
+
 /* ─── AUTH PAGE (Register / Login) ─── */
 .auth-page {
   position: fixed; inset: 0; background: var(--off-white); z-index: 1000;
@@ -375,9 +389,40 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
           <label>Confirm Password</label>
           <input type="password" id="regPass2" placeholder="Re-enter password" />
         </div>
-        <button class="btn btn-primary btn-full" onclick="registerCandidate()">Create Account →</button>
+        <div class="field">
+          <label>Interviewer Email <span style="font-size:11px;color:var(--text-3);font-weight:400;">(OTP will be sent here)</span></label>
+          <input type="email" id="regInterviewerEmail" placeholder="e.g. name@eclerx.com" oninput="validateInterviewerEmail(this.value)" />
+          <div class="field-hint" id="interviewerEmailHint"></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="registerCandidate()">Send OTP &amp; Continue →</button>
         <div class="error-msg" id="regErr"></div>
         <p style="margin-top:14px;font-size:13px;color:var(--text-3);text-align:center;">Already registered? <a href="#" onclick="switchAuthTab('login');return false;" style="color:var(--blue);text-decoration:none;">Log in →</a></p>
+      </div>
+
+      <!-- OTP VERIFICATION STEP -->
+      <div id="otpStep" class="auth-form hidden">
+        <div class="auth-form-title">Verify OTP</div>
+        <div class="auth-form-sub">A 6-digit OTP has been sent to <strong id="otpRecipientDisplay">—</strong>. Ask the interviewer for the OTP to complete registration.</div>
+        <div style="background:var(--blue-light);border:1px solid var(--blue-border);border-radius:var(--radius);padding:10px 14px;margin-bottom:16px;font-size:13px;color:#1864ab;">
+          📧 OTP sent to <strong id="otpRecipientBox">—</strong> &nbsp;·&nbsp; Valid for <strong>10 minutes</strong>
+        </div>
+        <div class="otp-inputs">
+          <input class="otp-digit" id="otp1" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,1)" onkeydown="otpKeydown(event,1)" />
+          <input class="otp-digit" id="otp2" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,2)" onkeydown="otpKeydown(event,2)" />
+          <input class="otp-digit" id="otp3" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,3)" onkeydown="otpKeydown(event,3)" />
+          <input class="otp-digit" id="otp4" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,4)" onkeydown="otpKeydown(event,4)" />
+          <input class="otp-digit" id="otp5" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,5)" onkeydown="otpKeydown(event,5)" />
+          <input class="otp-digit" id="otp6" maxlength="1" type="text" inputmode="numeric" pattern="[0-9]" oninput="otpInput(this,6)" onkeydown="otpKeydown(event,6)" />
+        </div>
+        <div class="otp-timer" id="otpTimerDisplay">OTP expires in 10:00</div>
+        <button class="btn btn-primary btn-full" onclick="verifyOTP()">Verify &amp; Create Account →</button>
+        <div class="error-msg" id="otpErr"></div>
+        <div style="margin-top:14px;text-align:center;">
+          <button class="otp-resend" id="otpResendBtn" onclick="resendOTP()" disabled>Resend OTP (wait for timer)</button>
+        </div>
+        <div style="margin-top:10px;text-align:center;">
+          <a href="#" onclick="backToRegister();return false;" style="font-size:13px;color:var(--text-3);">← Back to registration</a>
+        </div>
       </div>
 
       <!-- REGISTER SUCCESS -->
@@ -572,6 +617,7 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 </div><!-- /shell -->
 
 <!-- Skulpt -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://skulpt.org/js/skulpt.min.js"></script>
 <script src="https://skulpt.org/js/skulpt-stdlib.js"></script>
 
@@ -902,6 +948,32 @@ function checkStrength(pw) {
   text.textContent = l.t; text.style.color = l.bg;
 }
 
+/* ════════════════════════════════════════════════
+   EMAILJS CONFIG
+   1. Sign up free at emailjs.com
+   2. Create a service (Gmail/Outlook/SMTP) → copy Service ID
+   3. Create an email template with variables:
+        {{otp_code}}, {{candidate_name}}, {{candidate_email}}, {{valid_minutes}}
+      Set "To email" as: {{to_email}}  (dynamic — any @eclerx.com address)
+   4. Copy Public Key from Account → API Keys
+   5. Fill in below:
+════════════════════════════════════════════════ */
+const EMAILJS_SERVICE_ID  = 'YOUR_EMAILJS_SERVICE_ID';   // e.g. 'service_abc123'
+const EMAILJS_TEMPLATE_ID = 'YOUR_EMAILJS_TEMPLATE_ID';  // e.g. 'template_xyz789'
+const EMAILJS_PUBLIC_KEY  = 'YOUR_EMAILJS_PUBLIC_KEY';   // e.g. 'abc123XYZ'
+let otpRecipient = '';   // set from interviewer email field on registration form
+const OTP_VALID_MINUTES   = 10;
+
+let pendingProfile = null;   // holds form data while OTP is pending
+let currentOTP     = null;   // the generated OTP
+let otpExpiresAt   = null;   // timestamp when OTP expires
+let otpTimerLoop   = null;   // setInterval handle
+
+/* Generate a random 6-digit OTP */
+function generateOTP() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
 function registerCandidate() {
   const name  = document.getElementById('regName').value.trim();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -924,19 +996,193 @@ function registerCandidate() {
   if (pass !== pass2) {
     errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return;
   }
-  // Check if already registered
+  const interviewerEmail = document.getElementById('regInterviewerEmail').value.trim().toLowerCase();
+  const hintEl = document.getElementById('interviewerEmailHint');
+  hintEl.textContent = '';
+
+  if (!interviewerEmail) {
+    errEl.textContent = 'Please enter the interviewer email address.'; errEl.style.display = 'block'; return;
+  }
+  // Must be an @eclerx.com address
+  if (!interviewerEmail.endsWith('@eclerx.com')) {
+    errEl.textContent = 'Interviewer email must be an @eclerx.com address (e.g. name@eclerx.com).'; errEl.style.display = 'block'; return;
+  }
+
   const existing = localStorage.getItem('eclerx_candidate_' + email);
   if (existing) {
     errEl.textContent = 'An account with this email already exists. Please log in.'; errEl.style.display = 'block'; return;
   }
-  // Store in localStorage
-  const profile = { name, email, phone, exp, pass, createdAt: Date.now() };
-  localStorage.setItem('eclerx_candidate_' + email, JSON.stringify(profile));
-  // Also save to Supabase if configured
-  saveProfileToSupabase(profile);
-  // Show success
+
+  // Set global recipient
+  otpRecipient = interviewerEmail;
+
+  // Store form data temporarily — do NOT save to localStorage yet
+  pendingProfile = { name, email, phone, exp, pass, interviewerEmail };
+
+  // Send OTP
+  sendOTP(name, email, interviewerEmail);
+}
+
+async function sendOTP(candidateName, candidateEmail, recipientEmail) {
+  const btn   = document.querySelector('#registerForm .btn-primary');
+  const errEl = document.getElementById('regErr');
+  btn.disabled = true;
+  btn.textContent = 'Sending OTP...';
+
+  currentOTP    = generateOTP();
+  otpExpiresAt  = Date.now() + OTP_VALID_MINUTES * 60 * 1000;
+
+  // EmailJS configured — send real email
+  if (EMAILJS_PUBLIC_KEY !== 'YOUR_EMAILJS_PUBLIC_KEY') {
+    try {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        otp_code:        currentOTP,
+        candidate_name:  candidateName,
+        candidate_email: candidateEmail,
+        valid_minutes:   OTP_VALID_MINUTES,
+        to_email:        recipientEmail || otpRecipient
+      });
+    } catch(e) {
+      console.error('EmailJS error:', e);
+      errEl.textContent = 'Failed to send OTP email. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Create Account →';
+      return;
+    }
+  } else {
+    // EmailJS not yet configured — show OTP in console for testing
+    console.log('%c[DEV MODE] OTP: ' + currentOTP, 'background:#1c7ed6;color:#fff;padding:4px 8px;border-radius:3px;font-size:14px;font-weight:bold;');
+    console.log('Configure EmailJS to send real OTP emails.');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Create Account →';
+
+  // Switch to OTP step
   document.getElementById('registerForm').classList.add('hidden');
+  // Update display with actual recipient
+  const recip = recipientEmail || otpRecipient || '—';
+  const d1 = document.getElementById('otpRecipientDisplay');
+  const d2 = document.getElementById('otpRecipientBox');
+  if (d1) d1.textContent = recip;
+  if (d2) d2.textContent = recip;
+  document.getElementById('otpStep').classList.remove('hidden');
+  clearOTPInputs();
+  startOTPTimer();
+  setTimeout(() => document.getElementById('otp1').focus(), 100);
+}
+
+/* OTP input — auto-advance to next box */
+function otpInput(el, num) {
+  el.value = el.value.replace(/[^0-9]/g, '').slice(-1);
+  if (el.value && num < 6) {
+    document.getElementById('otp' + (num + 1)).focus();
+  }
+  if (num === 6 && el.value) {
+    // Auto-verify when all 6 digits filled
+    const full = getOTPValue();
+    if (full.length === 6) verifyOTP();
+  }
+}
+
+function otpKeydown(e, num) {
+  if (e.key === 'Backspace' && !e.target.value && num > 1) {
+    document.getElementById('otp' + (num - 1)).focus();
+  }
+}
+
+function getOTPValue() {
+  return [1,2,3,4,5,6].map(i => document.getElementById('otp'+i).value).join('');
+}
+
+function clearOTPInputs() {
+  [1,2,3,4,5,6].forEach(i => { document.getElementById('otp'+i).value = ''; });
+}
+
+function verifyOTP() {
+  const entered = getOTPValue();
+  const errEl   = document.getElementById('otpErr');
+  errEl.style.display = 'none';
+
+  if (entered.length < 6) {
+    errEl.textContent = 'Please enter all 6 digits.'; errEl.style.display = 'block'; return;
+  }
+  if (Date.now() > otpExpiresAt) {
+    errEl.textContent = 'OTP has expired. Please click Resend OTP.'; errEl.style.display = 'block';
+    clearOTPInputs(); return;
+  }
+  if (entered !== currentOTP) {
+    errEl.textContent = 'Incorrect OTP. Please check and try again.'; errEl.style.display = 'block';
+    clearOTPInputs(); document.getElementById('otp1').focus(); return;
+  }
+
+  // OTP correct — finalise registration
+  clearInterval(otpTimerLoop);
+  const profile = { ...pendingProfile, createdAt: Date.now() };
+  localStorage.setItem('eclerx_candidate_' + profile.email, JSON.stringify(profile));
+  saveProfileToSupabase(profile);
+  currentOTP     = null;
+  pendingProfile = null;
+
+  document.getElementById('otpStep').classList.add('hidden');
   document.getElementById('registerSuccess').style.display = 'block';
+}
+
+function startOTPTimer() {
+  const resendBtn = document.getElementById('otpResendBtn');
+  resendBtn.disabled = true;
+  clearInterval(otpTimerLoop);
+  otpTimerLoop = setInterval(() => {
+    const remaining = Math.max(0, otpExpiresAt - Date.now());
+    const m = String(Math.floor(remaining / 60000)).padStart(2,'0');
+    const s = String(Math.floor((remaining % 60000) / 1000)).padStart(2,'0');
+    const display = document.getElementById('otpTimerDisplay');
+    if (display) {
+      display.textContent = remaining > 0 ? 'OTP expires in ' + m + ':' + s : 'OTP has expired';
+      display.className   = 'otp-timer' + (remaining === 0 ? ' expired' : '');
+    }
+    if (remaining === 0) {
+      clearInterval(otpTimerLoop);
+      if (resendBtn) resendBtn.disabled = false;
+      resendBtn.textContent = 'Resend OTP';
+    }
+  }, 1000);
+}
+
+function resendOTP() {
+  if (!pendingProfile) return;
+  clearOTPInputs();
+  document.getElementById('otpErr').style.display = 'none';
+  document.getElementById('otpResendBtn').disabled = true;
+  document.getElementById('otpResendBtn').textContent = 'Sending...';
+  sendOTP(pendingProfile.name, pendingProfile.email, pendingProfile.interviewerEmail || otpRecipient);
+}
+
+function backToRegister() {
+  clearInterval(otpTimerLoop);
+  currentOTP     = null;
+  pendingProfile = null;
+  document.getElementById('otpStep').classList.add('hidden');
+  document.getElementById('registerForm').classList.remove('hidden');
+  document.getElementById('regErr').style.display = 'none';
+}
+
+
+function validateInterviewerEmail(val) {
+  const hint = document.getElementById('interviewerEmailHint');
+  if (!hint) return;
+  if (!val) { hint.textContent = ''; return; }
+  if (val.endsWith('@eclerx.com')) {
+    hint.textContent = '✓ Valid eClerx email';
+    hint.style.color = 'var(--green)';
+  } else if (val.includes('@')) {
+    hint.textContent = '✗ Must be an @eclerx.com address';
+    hint.style.color = 'var(--red)';
+  } else {
+    hint.textContent = '';
+  }
 }
 
 async function saveProfileToSupabase(profile) {
