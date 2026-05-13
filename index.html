@@ -37,7 +37,7 @@
 body { font-family: var(--sans); background: var(--off-white); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
 
 /* ─── UTILITY ─── */
-.hidden { display: none !important; }
+.hidden { display: none; }
 .mono { font-family: var(--mono); }
 code { font-family: var(--mono); font-size: 13px; background: var(--light); padding: 1px 5px; border-radius: 3px; color: var(--text-2); }
 
@@ -279,7 +279,7 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 .step-body { font-size:12px; color:var(--text-3); line-height:1.7; margin-top:6px; padding-left:30px; }
 .step-body a { color:var(--blue); }
 .step-body code { background:var(--white); border:1px solid var(--border); border-radius:3px; padding:1px 5px; font-family:var(--mono); font-size:11px; }
-.iw-success { display:none; padding:28px; text-align:center; }
+.iw-success { padding:28px; text-align:center; }
 .iw-success-icon { font-size:36px; margin-bottom:10px; }
 .iw-success-title { font-size:16px; font-weight:600; margin-bottom:6px; }
 .iw-success-sub { font-size:13px; color:var(--text-3); line-height:1.6; }
@@ -306,13 +306,13 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
   padding: 40px 24px;
 }
 .auth-card {
-  width: 100%; max-width: 420px; background: var(--white);
+  width: 100%; max-width: 520px; background: var(--white);
   border: 1px solid var(--border); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md); overflow: hidden;
 }
 .auth-tabs { display: flex; border-bottom: 1px solid var(--border); }
 .auth-tab {
-  flex: 1; padding: 14px; font-family: var(--sans); font-size: 14px;
+  flex: 1; padding: 12px 8px; font-family: var(--sans); font-size: 13px;
   font-weight: 500; border: none; background: var(--off-white);
   color: var(--text-3); cursor: pointer; transition: all 0.15s;
   border-bottom: 2px solid transparent; margin-bottom: -1px;
@@ -440,7 +440,7 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
       </div>
 
       <!-- REGISTER SUCCESS -->
-      <div id="registerSuccess" class="auth-success">
+      <div id="registerSuccess" class="auth-success hidden">
         <div class="auth-success-icon">✅</div>
         <div class="auth-success-title">Account created!</div>
         <div class="auth-success-sub">Registration successful. You can now log in to begin the assessment.</div>
@@ -462,6 +462,72 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
         <button class="btn btn-primary btn-full" onclick="candidateLogin()">Log In &amp; Start Assessment →</button>
         <div class="error-msg" id="loginErr"></div>
         <p style="margin-top:14px;font-size:13px;color:var(--text-3);text-align:center;">New candidate? <a href="#" onclick="switchAuthTab('register');return false;" style="color:var(--blue);text-decoration:none;">Register →</a></p>
+      </div>
+
+      <!-- INTERVIEWER REGISTRATION FORM -->
+      <div id="interviewerForm" class="auth-form hidden">
+        <div class="auth-form-title">Interviewer Registration</div>
+        <div class="auth-form-sub">Register your EmailJS credentials so OTPs can be sent from your account.</div>
+
+        <div class="step-box">
+          <div style="display:flex;align-items:center;"><span class="step-num">1</span><span class="step-title">Sign up on EmailJS</span></div>
+          <div class="step-body">Go to <a href="https://dashboard.emailjs.com/sign-up" target="_blank" style="color:var(--blue);">dashboard.emailjs.com/sign-up</a> and create a free account.</div>
+        </div>
+
+        <div class="step-box">
+          <div style="display:flex;align-items:center;"><span class="step-num">2</span><span class="step-title">Create Email Service → copy Service ID</span></div>
+          <div class="step-body">Dashboard → <strong>Email Services</strong> → <strong>Add New Service</strong> → connect Gmail/Outlook → copy the <code>service_xxx</code> ID.</div>
+        </div>
+
+        <div class="step-box">
+          <div style="display:flex;align-items:center;"><span class="step-num">3</span><span class="step-title">Create Email Template → copy Template ID</span></div>
+          <div class="step-body">
+            Dashboard → <strong>Email Templates</strong> → <strong>Create New Template</strong><br>
+            • <strong>To Email:</strong> your eClerx email (e.g. <code>sunil.dhasmana@eclerx.com</code>)<br>
+            • <strong>Subject:</strong> <code>eClerx OTP for {{candidate_name}}</code><br>
+            • Body must include: <code>{{otp_code}}</code> <code>{{candidate_name}}</code> <code>{{candidate_email}}</code> <code>{{valid_minutes}}</code><br>
+            Save → copy the <code>template_xxx</code> ID.
+          </div>
+        </div>
+
+        <div class="step-box">
+          <div style="display:flex;align-items:center;"><span class="step-num">4</span><span class="step-title">Copy your Public Key</span></div>
+          <div class="step-body">Dashboard → <strong>Account</strong> → <strong>General</strong> → copy the <strong>Public Key</strong>.</div>
+        </div>
+
+        <div style="border-top:1px solid var(--border-light);padding-top:16px;margin-top:4px;">
+          <div class="field">
+            <label>Interviewer Name</label>
+            <input type="text" id="iwName" placeholder="e.g. Sunil Dhasmana" />
+          </div>
+          <div class="field">
+            <label>Interviewer Email (must be @eclerx.com)</label>
+            <input type="email" id="iwEmail" placeholder="e.g. sunil.dhasmana@eclerx.com" oninput="validateIwEmail(this.value)" />
+            <div class="field-hint" id="iwEmailHint"></div>
+          </div>
+          <div class="field">
+            <label>Service ID</label>
+            <input type="text" id="iwServiceId" placeholder="e.g. service_abc123" style="font-family:var(--mono);font-size:13px;" />
+          </div>
+          <div class="field">
+            <label>Template ID</label>
+            <input type="text" id="iwTemplateId" placeholder="e.g. template_xyz789" style="font-family:var(--mono);font-size:13px;" />
+          </div>
+          <div class="field">
+            <label>Public Key</label>
+            <input type="text" id="iwPublicKey" placeholder="e.g. FmdC0rZzEBR-jfCNA" style="font-family:var(--mono);font-size:13px;" />
+          </div>
+          <button class="btn btn-primary btn-full" id="iwRegBtn" onclick="registerInterviewer()">Register Interviewer →</button>
+          <div class="error-msg" id="iwErr"></div>
+        </div>
+      </div>
+
+      <!-- INTERVIEWER SUCCESS -->
+      <div id="interviewerSuccess" class="auth-form hidden" style="text-align:center;padding:32px 28px;">
+        <div style="font-size:36px;margin-bottom:12px;">✅</div>
+        <div style="font-size:17px;font-weight:600;margin-bottom:6px;">Registration successful!</div>
+        <div style="font-size:13px;color:var(--text-3);line-height:1.7;margin-bottom:20px;">Your EmailJS credentials are saved. Candidates who enter your eClerx email during registration will use your account to receive OTPs.</div>
+        <button class="btn btn-secondary" onclick="switchAuthTab('register')">← Back to candidate registration</button>
       </div>
 
     </div>
@@ -925,30 +991,34 @@ function fmtDate(iso) {
 let registeredCandidate = null;   // set after successful login
 
 function switchAuthTab(tab) {
+  // Update tab buttons
   ['register','login','interviewer'].forEach(t => {
-    const btn = document.getElementById('atab-'+t);
-    if (btn) btn.classList.toggle('active', t===tab);
+    const btn = document.getElementById('atab-' + t);
+    if (btn) btn.classList.toggle('active', t === tab);
   });
-  // Hide all panels
-  ['registerForm','loginForm','interviewerForm'].forEach(id => {
+
+  // Hide ALL panels using classList only (no style.display mixing)
+  const allPanels = [
+    'registerForm','registerSuccess',
+    'loginForm',
+    'otpStep',
+    'interviewerForm','interviewerSuccess'
+  ];
+  allPanels.forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
-  ['registerSuccess','interviewerSuccess'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = 'none';
-  });
-  document.getElementById('otpStep').classList.add('hidden');
 
+  // Show the right panel
   if (tab === 'register') {
     document.getElementById('registerForm').classList.remove('hidden');
-    setTimeout(()=>{ const e=document.getElementById('regName'); if(e) e.focus(); }, 100);
+    setTimeout(() => { const e = document.getElementById('regName'); if (e) e.focus(); }, 100);
   } else if (tab === 'login') {
     document.getElementById('loginForm').classList.remove('hidden');
-    setTimeout(()=>{ const e=document.getElementById('loginEmail'); if(e) e.focus(); }, 100);
+    setTimeout(() => { const e = document.getElementById('loginEmail'); if (e) e.focus(); }, 100);
   } else if (tab === 'interviewer') {
     document.getElementById('interviewerForm').classList.remove('hidden');
-    setTimeout(()=>{ const e=document.getElementById('iwName'); if(e) e.focus(); }, 100);
+    setTimeout(() => { const e = document.getElementById('iwName'); if (e) e.focus(); }, 100);
   }
 }
 
@@ -1026,7 +1096,7 @@ async function registerInterviewer() {
     errEl.textContent = 'Email must be an @eclerx.com address.'; errEl.style.display = 'block'; return;
   }
 
-  const btn = document.querySelector('#interviewerForm .btn-primary');
+  const btn = document.getElementById('iwRegBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
 
   const profile = { name, email, service_id: serviceId, template_id: templateId, public_key: publicKey };
@@ -1041,12 +1111,12 @@ async function registerInterviewer() {
 
   if (saved) {
     document.getElementById('interviewerForm').classList.add('hidden');
-    document.getElementById('interviewerSuccess').style.display = 'block';
+    document.getElementById('interviewerSuccess').classList.remove('hidden');
     toast('Interviewer registered successfully!', 'ok');
   } else {
     // Still saved to localStorage — show success anyway
     document.getElementById('interviewerForm').classList.add('hidden');
-    document.getElementById('interviewerSuccess').style.display = 'block';
+    document.getElementById('interviewerSuccess').classList.remove('hidden');
     toast('Saved locally. Supabase sync failed — check connection.', 'warn');
   }
 }
@@ -1289,7 +1359,7 @@ function verifyOTP() {
   pendingProfile = null;
 
   document.getElementById('otpStep').classList.add('hidden');
-  document.getElementById('registerSuccess').style.display = 'block';
+  document.getElementById('registerSuccess').classList.remove('hidden');
 }
 
 function startOTPTimer() {
