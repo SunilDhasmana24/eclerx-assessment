@@ -474,6 +474,23 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 
       <!-- INTERVIEWER REGISTRATION FORM -->
       <div id="interviewerForm" class="auth-form hidden">
+
+        <!-- Password gate for interviewer tab -->
+        <div id="iwPassGate" style="padding:28px 24px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:12px;">🔒</div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:6px;">Interviewer Access</div>
+          <div style="font-size:13px;color:var(--text-3);margin-bottom:20px;line-height:1.6;">This section is restricted to eClerx interviewers only.</div>
+          <div class="field" style="text-align:left;">
+            <label>Access Password</label>
+            <input type="password" id="iwGatePass" placeholder="••••••••••"
+              onkeydown="if(event.key==='Enter')unlockInterviewerForm()" />
+          </div>
+          <button class="btn btn-primary btn-full" onclick="unlockInterviewerForm()">Unlock →</button>
+          <div class="error-msg" id="iwGateErr" style="margin-top:12px;">Incorrect password. Please try again.</div>
+        </div>
+
+        <!-- Actual form — shown after password verified -->
+        <div id="iwFormContent" class="hidden">
         <div style="padding:16px 20px 0;">
           <div class="auth-form-title">Interviewer Registration</div>
           <div class="auth-form-sub" style="margin-bottom:14px;">Register your EmailJS credentials. <a href="#" onclick="document.getElementById('iwSteps').classList.toggle('hidden');return false;" style="color:var(--blue);font-size:12px;">Setup guide ▾</a></div>
@@ -525,6 +542,7 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
           <button class="btn btn-primary btn-full" id="iwRegBtn" onclick="registerInterviewer()">Register Interviewer →</button>
           <div class="error-msg" id="iwErr"></div>
         </div>
+        </div><!-- /iwFormContent -->
       </div>
 
       <!-- INTERVIEWER SUCCESS -->
@@ -1022,7 +1040,15 @@ function switchAuthTab(tab) {
     setTimeout(() => { const e = document.getElementById('loginEmail'); if (e) e.focus(); }, 100);
   } else if (tab === 'interviewer') {
     document.getElementById('interviewerForm').classList.remove('hidden');
-    setTimeout(() => { const e = document.getElementById('iwName'); if (e) e.focus(); }, 100);
+    // Always show password gate first when switching to interviewer tab
+    const gate = document.getElementById('iwPassGate');
+    const form = document.getElementById('iwFormContent');
+    if (gate) gate.classList.remove('hidden');
+    if (form) form.classList.add('hidden');
+    const passInput = document.getElementById('iwGatePass');
+    if (passInput) { passInput.value = ''; setTimeout(() => passInput.focus(), 100); }
+    const errEl = document.getElementById('iwGateErr');
+    if (errEl) errEl.style.display = 'none';
   }
 }
 
@@ -1068,6 +1094,24 @@ function generateOTP() {
    in Supabase (interviewer_profiles table) and
    localStorage as a cache.
 ════════════════════════════════════════════════ */
+
+
+function unlockInterviewerForm() {
+  const pass  = document.getElementById('iwGatePass').value.trim();
+  const errEl = document.getElementById('iwGateErr');
+  // Password: Eclerx_ + MMDDYYYY (current date)
+  const expected = 'Eclerx_' + todayMMDDYYYY();
+  if (pass === expected) {
+    document.getElementById('iwPassGate').classList.add('hidden');
+    document.getElementById('iwFormContent').classList.remove('hidden');
+    errEl.style.display = 'none';
+    setTimeout(() => { const e = document.getElementById('iwName'); if(e) e.focus(); }, 100);
+  } else {
+    errEl.style.display = 'block';
+    document.getElementById('iwGatePass').value = '';
+    document.getElementById('iwGatePass').focus();
+  }
+}
 
 function validateIwEmail(val) {
   const hint = document.getElementById('iwEmailHint');
@@ -1386,11 +1430,39 @@ function verifyOTP() {
   const profile = { ...pendingProfile, createdAt: Date.now() };
   localStorage.setItem('eclerx_candidate_' + profile.email, JSON.stringify(profile));
   saveProfileToSupabase(profile);
+  const savedEmail = profile.email;
+  const savedName  = profile.name;
   currentOTP     = null;
   pendingProfile = null;
 
   document.getElementById('otpStep').classList.add('hidden');
-  document.getElementById('registerSuccess').classList.remove('hidden');
+
+  // Show personalised success message
+  const successDiv = document.getElementById('registerSuccess');
+  successDiv.innerHTML =
+    '<div style="text-align:center;padding:28px 16px;">' +
+      '<div style="font-size:44px;margin-bottom:12px;">🎉</div>' +
+      '<div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:8px;">Registration Successful!</div>' +
+      '<div style="font-size:13px;color:var(--text-3);line-height:1.6;margin-bottom:16px;">' +
+        'Welcome, <strong style="color:var(--text);">' + savedName + '</strong>!<br>' +
+        'Your account has been created successfully.<br>' +
+        'Redirecting to login in 3 seconds...' +
+      '</div>' +
+    '</div>';
+  successDiv.classList.remove('hidden');
+
+  // Auto-redirect to login tab and pre-fill email
+  setTimeout(function() {
+    successDiv.classList.add('hidden');
+    const loginEmailEl = document.getElementById('loginEmail');
+    if (loginEmailEl) loginEmailEl.value = savedEmail;
+    switchAuthTab('login');
+    setTimeout(function() {
+      const loginPassEl = document.getElementById('loginPass');
+      if (loginPassEl) loginPassEl.focus();
+    }, 150);
+    toast('Account created! Enter your password to continue.', 'ok');
+  }, 3000);
 }
 
 function startOTPTimer() {
@@ -1492,8 +1564,10 @@ function candidateLogin() {
   }
   // Successful login
   registeredCandidate = profile;
+  // Ensure all other gates are hidden
   document.getElementById('authPage').classList.add('hidden');
-  // Show intake gate pre-filled
+  document.getElementById('secureGate').classList.add('hidden');
+  // Show intake gate
   document.getElementById('intakeGate').classList.remove('hidden');
   document.getElementById('intakeNameDisplay').textContent = profile.name;
   document.getElementById('intakeSummaryName').textContent  = profile.name;
