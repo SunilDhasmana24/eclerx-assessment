@@ -706,8 +706,8 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 /* ════════════════════════════════════════════════
    SUPABASE CONFIG — fill these in
 ════════════════════════════════════════════════ */
-const SUPABASE_URL = 'YOUR_SUPABASE_PROJECT_URL';
-const SUPABASE_KEY = 'YOUR_PUBLISHABLE_KEY';
+const SUPABASE_URL = 'https://pvegafdltfuvdfevzyny.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_BTQH0cN17hZiPYKQh2VppA_A5Qrgj3P';
 
 /* ════════════════════════════════════════════════
    QUESTION BANK — exact from PDF, validated
@@ -1270,42 +1270,65 @@ async function sendOTP(candidateName, candidateEmail, recipientEmail) {
     return;
   }
 
-  // Use interviewer's EmailJS credentials via REST API (no SDK — works on file:// and GitHub Pages)
+  // Load EmailJS SDK dynamically then send using interviewer credentials
   try {
-    console.log('[OTP] Sending via EmailJS REST API — service:', iwProfile.service_id, 'template:', iwProfile.template_id, 'to:', recipient);
+    // Dynamically load EmailJS SDK if not already present
+    await new Promise((resolve, reject) => {
+      if (typeof emailjs !== 'undefined') { resolve(); return; }
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+      script.onload = () => {
+        console.log('[OTP] EmailJS SDK loaded');
+        resolve();
+      };
+      script.onerror = () => reject(new Error('Could not load EmailJS SDK. Check your internet connection.'));
+      document.head.appendChild(script);
+      setTimeout(() => reject(new Error('EmailJS SDK load timed out after 10s.')), 10000);
+    });
 
-    const payload = {
-      service_id:  iwProfile.service_id,
-      template_id: iwProfile.template_id,
-      user_id:     iwProfile.public_key,
-      template_params: {
+    // Init with interviewer public key
+    emailjs.init({ publicKey: iwProfile.public_key });
+
+    console.log('[OTP] Sending — service:', iwProfile.service_id, 'template:', iwProfile.template_id, 'to:', recipient);
+
+    const response = await emailjs.send(
+      iwProfile.service_id,
+      iwProfile.template_id,
+      {
         otp_code:          currentOTP,
         candidate_name:    candidateName,
         candidate_email:   candidateEmail,
         interviewer_email: recipient,
         valid_minutes:     String(OTP_VALID_MINUTES)
       }
-    };
+    );
 
-    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Origin': 'https://sunildhasmana24.github.io' },
-      body:    JSON.stringify(payload)
-    });
-
-    if (res.ok || res.status === 200) {
-      console.log('[OTP] Sent successfully');
-    } else {
-      const errText = await res.text().catch(() => res.statusText);
-      throw new Error('EmailJS error ' + res.status + ': ' + errText);
-    }
+    console.log('[OTP] Sent successfully:', response.status, response.text);
 
   } catch(e) {
     console.error('[OTP] Send failed:', e);
-    const msg = (e && e.message) ? e.message : String(e);
+    const msg = (e && e.text)    ? e.text
+              : (e && e.message) ? e.message
+              : String(e);
+
+    // Give a specific, actionable error based on message
+    let hint = 'Check the interviewer EmailJS credentials — they may need to re-register.';
+    if (msg.includes('load') || msg.includes('fetch') || msg.includes('network') || msg.includes('internet')) {
+      hint = 'No internet connection detected. Please check your network and try again.';
+    } else if (msg.includes('service') || msg.includes('Service')) {
+      hint = 'The Service ID appears invalid. Ask the interviewer to re-register with the correct Service ID.';
+    } else if (msg.includes('template') || msg.includes('Template')) {
+      hint = 'The Template ID appears invalid. Ask the interviewer to re-register with the correct Template ID.';
+    } else if (msg.includes('public key') || msg.includes('Public Key') || msg.includes('user_id')) {
+      hint = 'The Public Key appears invalid. Ask the interviewer to re-register with the correct Public Key.';
+    } else if (msg.includes('block') || msg.includes('origin') || msg.includes('domain')) {
+      hint = 'EmailJS is blocking requests from this domain. Ask the interviewer to add this site to their EmailJS Security settings.';
+    }
+
     if (errEl) {
-      errEl.innerHTML = '<strong>Could not send OTP.</strong> ' + msg
-        + '<br><small style="color:var(--text-3);">Check the interviewer EmailJS credentials. They may need to re-register in the Interviewer tab.</small>';
+      errEl.innerHTML = '<strong>Could not send OTP.</strong> '
+        + '<br><small style="color:#666;">' + msg + '</small>'
+        + '<br><small style="color:var(--text-3);">' + hint + '</small>';
       errEl.style.display = 'block';
     }
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
