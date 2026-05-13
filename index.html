@@ -517,6 +517,11 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
             <label>Public Key</label>
             <input type="text" id="iwPublicKey" placeholder="e.g. FmdC0rZzEBR-jfCNA" style="font-family:var(--mono);font-size:13px;" />
           </div>
+          <div class="field">
+            <label>Private Key <span style="font-size:11px;color:var(--text-3);font-weight:400;">(required if strict mode is ON in EmailJS Security)</span></label>
+            <input type="password" id="iwPrivateKey" placeholder="e.g. M_i0xxxxxxxxxxxxxxx" style="font-family:var(--mono);font-size:13px;" />
+            <div class="field-hint">Found in EmailJS → Account → General → Private Key</div>
+          </div>
           <button class="btn btn-primary btn-full" id="iwRegBtn" onclick="registerInterviewer()">Register Interviewer →</button>
           <div class="error-msg" id="iwErr"></div>
         </div>
@@ -1098,7 +1103,8 @@ async function registerInterviewer() {
   const btn = document.getElementById('iwRegBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
 
-  const profile = { name, email, service_id: serviceId, template_id: templateId, public_key: publicKey };
+  const privateKey = document.getElementById('iwPrivateKey') ? document.getElementById('iwPrivateKey').value.trim() : '';
+  const profile = { name, email, service_id: serviceId, template_id: templateId, public_key: publicKey, private_key: privateKey };
 
   // Save to localStorage (cache)
   localStorage.setItem('eclerx_interviewer_' + email, JSON.stringify(profile));
@@ -1138,6 +1144,7 @@ async function saveInterviewerToSupabase(profile) {
         service_id:  profile.service_id,
         template_id: profile.template_id,
         public_key:  profile.public_key,
+        private_key: profile.private_key || '',
         registered_at: new Date().toISOString()
       })
     });
@@ -1288,6 +1295,7 @@ async function sendOTP(candidateName, candidateEmail, recipientEmail) {
           service_id:    iwProfile.service_id,
           template_id:   iwProfile.template_id,
           public_key:    iwProfile.public_key,
+          private_key:   iwProfile.private_key || '',
           otp_code:      currentOTP,
           candidate_name:    candidateName,
           candidate_email:   candidateEmail,
