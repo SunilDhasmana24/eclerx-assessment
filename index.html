@@ -1270,65 +1270,44 @@ async function sendOTP(candidateName, candidateEmail, recipientEmail) {
     return;
   }
 
-  // Load EmailJS SDK dynamically then send using interviewer credentials
+  // Send OTP via Supabase Edge Function — runs server-side, no CORS issues
   try {
-    // Dynamically load EmailJS SDK if not already present
-    await new Promise((resolve, reject) => {
-      if (typeof emailjs !== 'undefined') { resolve(); return; }
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
-      script.onload = () => {
-        console.log('[OTP] EmailJS SDK loaded');
-        resolve();
-      };
-      script.onerror = () => reject(new Error('Could not load EmailJS SDK. Check your internet connection.'));
-      document.head.appendChild(script);
-      setTimeout(() => reject(new Error('EmailJS SDK load timed out after 10s.')), 10000);
-    });
+    if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL') {
+      // Supabase not configured — DEV MODE, show OTP in console
+      console.log('%c[DEV] OTP: ' + currentOTP, 'background:#1c7ed6;color:#fff;padding:6px 12px;border-radius:4px;font-size:16px;font-weight:bold;');
+      console.log('[DEV] Would send to:', recipient);
+    } else {
+      console.log('[OTP] Calling Supabase Edge Function → send-otp');
+      const res = await fetch(SUPABASE_URL + '/functions/v1/send-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type':  'application/json',
+          'Authorization': 'Bearer ' + SUPABASE_KEY
+        },
+        body: JSON.stringify({
+          service_id:    iwProfile.service_id,
+          template_id:   iwProfile.template_id,
+          public_key:    iwProfile.public_key,
+          otp_code:      currentOTP,
+          candidate_name:    candidateName,
+          candidate_email:   candidateEmail,
+          interviewer_email: recipient,
+          valid_minutes:     String(OTP_VALID_MINUTES)
+        })
+      });
 
-    // Init with interviewer public key
-    emailjs.init({ publicKey: iwProfile.public_key });
-
-    console.log('[OTP] Sending — service:', iwProfile.service_id, 'template:', iwProfile.template_id, 'to:', recipient);
-
-    const response = await emailjs.send(
-      iwProfile.service_id,
-      iwProfile.template_id,
-      {
-        otp_code:          currentOTP,
-        candidate_name:    candidateName,
-        candidate_email:   candidateEmail,
-        interviewer_email: recipient,
-        valid_minutes:     String(OTP_VALID_MINUTES)
+      const data = await res.json().catch(() => ({ error: res.statusText }));
+      if (!res.ok) {
+        throw new Error(data.error || 'Edge function error ' + res.status);
       }
-    );
-
-    console.log('[OTP] Sent successfully:', response.status, response.text);
-
+      console.log('[OTP] Sent successfully via Edge Function');
+    }
   } catch(e) {
     console.error('[OTP] Send failed:', e);
-    const msg = (e && e.text)    ? e.text
-              : (e && e.message) ? e.message
-              : String(e);
-
-    // Give a specific, actionable error based on message
-    let hint = 'Check the interviewer EmailJS credentials — they may need to re-register.';
-    if (msg.includes('load') || msg.includes('fetch') || msg.includes('network') || msg.includes('internet')) {
-      hint = 'No internet connection detected. Please check your network and try again.';
-    } else if (msg.includes('service') || msg.includes('Service')) {
-      hint = 'The Service ID appears invalid. Ask the interviewer to re-register with the correct Service ID.';
-    } else if (msg.includes('template') || msg.includes('Template')) {
-      hint = 'The Template ID appears invalid. Ask the interviewer to re-register with the correct Template ID.';
-    } else if (msg.includes('public key') || msg.includes('Public Key') || msg.includes('user_id')) {
-      hint = 'The Public Key appears invalid. Ask the interviewer to re-register with the correct Public Key.';
-    } else if (msg.includes('block') || msg.includes('origin') || msg.includes('domain')) {
-      hint = 'EmailJS is blocking requests from this domain. Ask the interviewer to add this site to their EmailJS Security settings.';
-    }
-
+    const msg = (e && e.message) ? e.message : String(e);
     if (errEl) {
-      errEl.innerHTML = '<strong>Could not send OTP.</strong> '
-        + '<br><small style="color:#666;">' + msg + '</small>'
-        + '<br><small style="color:var(--text-3);">' + hint + '</small>';
+      errEl.innerHTML = '<strong>Could not send OTP.</strong> ' + msg
+        + '<br><small style="color:var(--text-3);">If problem persists, check F12 → Console for details.</small>';
       errEl.style.display = 'block';
     }
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
