@@ -286,9 +286,10 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 
 /* ─── AUTH PAGE (Register / Login) ─── */
 .auth-page {
-  position: fixed; inset: 0; background: var(--off-white); z-index: 1000;
+  position: fixed; inset: 0; background: var(--off-white); z-index: 2000;
   display: flex; align-items: stretch; min-height: 100vh;
 }
+.auth-page.hidden { display: none; }
 .auth-sidebar {
   width: 340px; background: #1c7ed6; flex-shrink: 0;
   display: flex; flex-direction: column; justify-content: center;
@@ -1284,7 +1285,7 @@ async function sendOTP(candidateName, candidateEmail, recipientEmail) {
     const msg = (e && e.text) ? e.text : (e && e.message) ? e.message : String(e);
     if (errEl) {
       errEl.innerHTML = '<strong>Could not send OTP.</strong> ' + msg
-        + '<br><small style="color:var(--text-3);">The interviewer's EmailJS credentials may be invalid. Ask them to re-register in the Interviewer tab.</small>';
+        + '<br><small style="color:var(--text-3);">The interviewer EmailJS credentials may be invalid. Ask them to re-register in the Interviewer tab.</small>';
       errEl.style.display = 'block';
     }
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
