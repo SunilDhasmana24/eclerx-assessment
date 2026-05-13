@@ -303,14 +303,21 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 .auth-sidebar-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.85); }
 .auth-sidebar-item-dot { width: 6px; height: 6px; background: rgba(255,255,255,0.5); border-radius: 50%; flex-shrink: 0; }
 .auth-main {
-  flex: 1; display: flex; align-items: center; justify-content: center;
-  padding: 40px 24px;
+  flex: 1; display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px 24px; overflow-y: auto;
+}
+@media (min-height: 700px) {
+  .auth-main { align-items: center; }
 }
 .auth-card {
   width: 100%; max-width: 520px; background: var(--white);
   border: 1px solid var(--border); border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md); overflow: hidden;
+  display: flex; flex-direction: column;
+  max-height: calc(100vh - 60px);
 }
+.auth-tabs { flex-shrink: 0; }
+.auth-form { overflow-y: auto; flex: 1; padding: 20px 24px; box-sizing: border-box; }
 .auth-tabs { display: flex; border-bottom: 1px solid var(--border); }
 .auth-tab {
   flex: 1; padding: 12px 8px; font-family: var(--sans); font-size: 13px;
@@ -467,36 +474,28 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 
       <!-- INTERVIEWER REGISTRATION FORM -->
       <div id="interviewerForm" class="auth-form hidden">
-        <div class="auth-form-title">Interviewer Registration</div>
-        <div class="auth-form-sub">Register your EmailJS credentials so OTPs can be sent from your account.</div>
+        <div style="padding:16px 20px 0;">
+          <div class="auth-form-title">Interviewer Registration</div>
+          <div class="auth-form-sub" style="margin-bottom:14px;">Register your EmailJS credentials. <a href="#" onclick="document.getElementById('iwSteps').classList.toggle('hidden');return false;" style="color:var(--blue);font-size:12px;">Setup guide ▾</a></div>
 
-        <div class="step-box">
-          <div style="display:flex;align-items:center;"><span class="step-num">1</span><span class="step-title">Sign up on EmailJS</span></div>
-          <div class="step-body">Go to <a href="https://dashboard.emailjs.com/sign-up" target="_blank" style="color:var(--blue);">dashboard.emailjs.com/sign-up</a> and create a free account.</div>
-        </div>
-
-        <div class="step-box">
-          <div style="display:flex;align-items:center;"><span class="step-num">2</span><span class="step-title">Create Email Service → copy Service ID</span></div>
-          <div class="step-body">Dashboard → <strong>Email Services</strong> → <strong>Add New Service</strong> → connect Gmail/Outlook → copy the <code>service_xxx</code> ID.</div>
-        </div>
-
-        <div class="step-box">
-          <div style="display:flex;align-items:center;"><span class="step-num">3</span><span class="step-title">Create Email Template → copy Template ID</span></div>
-          <div class="step-body">
-            Dashboard → <strong>Email Templates</strong> → <strong>Create New Template</strong><br>
-            • <strong>To Email:</strong> your eClerx email (e.g. <code>sunil.dhasmana@eclerx.com</code>)<br>
-            • <strong>Subject:</strong> <code>eClerx OTP for {{candidate_name}}</code><br>
-            • Body must include: <code>{{otp_code}}</code> <code>{{candidate_name}}</code> <code>{{candidate_email}}</code> <code>{{valid_minutes}}</code><br>
-            Save → copy the <code>template_xxx</code> ID.
+          <div id="iwSteps" class="hidden" style="margin-bottom:14px;">
+            <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;"><span class="step-num">1</span><span class="step-title">Sign up at <a href="https://dashboard.emailjs.com/sign-up" target="_blank" style="color:var(--blue);">emailjs.com</a></span></div>
+            </div>
+            <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;"><span class="step-num">2</span><span class="step-title">Email Services → Add New Service → copy <code>service_xxx</code></span></div>
+            </div>
+            <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;"><span class="step-num">3</span><span class="step-title">Email Templates → Create Template → set To Email = your eClerx email → copy <code>template_xxx</code></span></div>
+              <div class="step-body" style="padding-left:30px;font-size:11px;">Body variables needed: <code>{{otp_code}}</code> <code>{{candidate_name}}</code> <code>{{candidate_email}}</code> <code>{{valid_minutes}}</code></div>
+            </div>
+            <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;"><span class="step-num">4</span><span class="step-title">Account → General → copy Public Key</span></div>
+            </div>
           </div>
         </div>
 
-        <div class="step-box">
-          <div style="display:flex;align-items:center;"><span class="step-num">4</span><span class="step-title">Copy your Public Key</span></div>
-          <div class="step-body">Dashboard → <strong>Account</strong> → <strong>General</strong> → copy the <strong>Public Key</strong>.</div>
-        </div>
-
-        <div style="border-top:1px solid var(--border-light);padding-top:16px;margin-top:4px;">
+        <div style="padding:0 20px 16px;">
           <div class="field">
             <label>Interviewer Name</label>
             <input type="text" id="iwName" placeholder="e.g. Sunil Dhasmana" />
@@ -698,7 +697,6 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
 </div><!-- /shell -->
 
 <!-- Skulpt -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="https://skulpt.org/js/skulpt.min.js"></script>
 <script src="https://skulpt.org/js/skulpt-stdlib.js"></script>
 
@@ -1125,14 +1123,14 @@ async function registerInterviewer() {
 async function saveInterviewerToSupabase(profile) {
   if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL') return false;
   try {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/interviewer_profiles`, {
+    console.log('[Interviewer] Saving to Supabase:', profile.email);
+    const res = await fetch(SUPABASE_URL + '/rest/v1/interviewer_profiles?on_conflict=email', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'apikey': SUPABASE_KEY,
         'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Prefer': 'resolution=merge-duplicates,return=minimal',
-        'On-Conflict': 'email'
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
       },
       body: JSON.stringify({
         name:        profile.name,
@@ -1143,37 +1141,57 @@ async function saveInterviewerToSupabase(profile) {
         registered_at: new Date().toISOString()
       })
     });
-    return res.ok || res.status === 201 || res.status === 200;
+    if (res.ok || res.status === 201 || res.status === 200) {
+      console.log('[Interviewer] Saved to Supabase successfully');
+      return true;
+    } else {
+      const errText = await res.text().catch(() => '');
+      console.warn('[Interviewer] Supabase save error', res.status, errText);
+      return false;
+    }
   } catch(e) {
-    console.warn('Interviewer Supabase save failed:', e);
+    console.warn('[Interviewer] Supabase save failed:', e);
     return false;
   }
 }
 
 async function lookupInterviewerProfile(email) {
-  /* Returns { service_id, template_id, public_key } or null */
+  /* Returns { service_id, template_id, public_key } or null
+     Checks localStorage first (works offline/file://), then Supabase */
   const key = email.trim().toLowerCase();
 
-  // 1. Check localStorage cache first
+  // 1. Always check localStorage first — works file://, offline, and GitHub Pages
   const cached = localStorage.getItem('eclerx_interviewer_' + key);
   if (cached) {
-    try { return JSON.parse(cached); } catch(e) {}
+    try {
+      const parsed = JSON.parse(cached);
+      if (parsed && parsed.service_id && parsed.template_id && parsed.public_key) {
+        console.log('[OTP] Interviewer profile found in localStorage for:', key);
+        return parsed;
+      }
+    } catch(e) {}
   }
 
-  // 2. Fetch from Supabase
-  if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL') return null;
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/interviewer_profiles?email=eq.${encodeURIComponent(key)}&select=*&limit=1`,
-      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
-    );
-    if (!res.ok) return null;
-    const rows = await res.json();
-    if (rows && rows.length > 0) {
-      localStorage.setItem('eclerx_interviewer_' + key, JSON.stringify(rows[0]));
-      return rows[0];
-    }
-  } catch(e) { console.warn('Interviewer lookup failed:', e); }
+  // 2. Try Supabase only if configured and localStorage missed
+  if (SUPABASE_URL && SUPABASE_URL !== 'YOUR_SUPABASE_PROJECT_URL') {
+    try {
+      const res = await fetch(
+        SUPABASE_URL + '/rest/v1/interviewer_profiles?email=eq.' + encodeURIComponent(key) + '&select=*&limit=1',
+        { headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY } }
+      );
+      if (res.ok) {
+        const rows = await res.json();
+        if (rows && rows.length > 0) {
+          // Cache it in localStorage for next time
+          localStorage.setItem('eclerx_interviewer_' + key, JSON.stringify(rows[0]));
+          console.log('[OTP] Interviewer profile found in Supabase for:', key);
+          return rows[0];
+        }
+      }
+    } catch(e) { console.warn('[OTP] Supabase lookup failed:', e); }
+  }
+
+  console.warn('[OTP] No interviewer profile found for:', key);
   return null;
 }
 
@@ -1252,40 +1270,42 @@ async function sendOTP(candidateName, candidateEmail, recipientEmail) {
     return;
   }
 
-  // Use interviewer's own EmailJS credentials
+  // Use interviewer's EmailJS credentials via REST API (no SDK — works on file:// and GitHub Pages)
   try {
-    // Wait for EmailJS SDK
-    await new Promise((resolve, reject) => {
-      if (typeof emailjs !== 'undefined') { resolve(); return; }
-      const check = setInterval(() => {
-        if (typeof emailjs !== 'undefined') { clearInterval(check); resolve(); }
-      }, 50);
-      setTimeout(() => { clearInterval(check); reject(new Error('EmailJS SDK did not load.')); }, 8000);
-    });
+    console.log('[OTP] Sending via EmailJS REST API — service:', iwProfile.service_id, 'template:', iwProfile.template_id, 'to:', recipient);
 
-    emailjs.init({ publicKey: iwProfile.public_key });
-
-    console.log('[OTP] Sending via interviewer EmailJS — service:', iwProfile.service_id, 'template:', iwProfile.template_id, 'to:', recipient);
-
-    const response = await emailjs.send(
-      iwProfile.service_id,
-      iwProfile.template_id,
-      {
+    const payload = {
+      service_id:  iwProfile.service_id,
+      template_id: iwProfile.template_id,
+      user_id:     iwProfile.public_key,
+      template_params: {
         otp_code:          currentOTP,
         candidate_name:    candidateName,
         candidate_email:   candidateEmail,
         interviewer_email: recipient,
         valid_minutes:     String(OTP_VALID_MINUTES)
       }
-    );
-    console.log('[OTP] Sent successfully:', response.status, response.text);
+    };
+
+    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Origin': 'https://sunildhasmana24.github.io' },
+      body:    JSON.stringify(payload)
+    });
+
+    if (res.ok || res.status === 200) {
+      console.log('[OTP] Sent successfully');
+    } else {
+      const errText = await res.text().catch(() => res.statusText);
+      throw new Error('EmailJS error ' + res.status + ': ' + errText);
+    }
 
   } catch(e) {
     console.error('[OTP] Send failed:', e);
-    const msg = (e && e.text) ? e.text : (e && e.message) ? e.message : String(e);
+    const msg = (e && e.message) ? e.message : String(e);
     if (errEl) {
       errEl.innerHTML = '<strong>Could not send OTP.</strong> ' + msg
-        + '<br><small style="color:var(--text-3);">The interviewer EmailJS credentials may be invalid. Ask them to re-register in the Interviewer tab.</small>';
+        + '<br><small style="color:var(--text-3);">Check the interviewer EmailJS credentials. They may need to re-register in the Interviewer tab.</small>';
       errEl.style.display = 'block';
     }
     if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send OTP & Continue →'; }
