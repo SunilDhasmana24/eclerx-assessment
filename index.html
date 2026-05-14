@@ -1167,81 +1167,106 @@ async function registerInterviewer() {
     // Still saved to localStorage — show success anyway
     document.getElementById('interviewerForm').classList.add('hidden');
     document.getElementById('interviewerSuccess').classList.remove('hidden');
-    toast('Saved locally. Supabase sync failed — check connection.', 'warn');
+    // Error already shown in iwErr field above
   }
 }
 
 async function saveInterviewerToSupabase(profile) {
-  if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL') return false;
-
-  const body = JSON.stringify({
-    name:          profile.name,
-    email:         profile.email,
-    service_id:    profile.service_id,
-    template_id:   profile.template_id,
-    public_key:    profile.public_key,
-    private_key:   profile.private_key || '',
-    registered_at: new Date().toISOString()
-  });
-
-  const headers = {
-    'Content-Type':  'application/json',
-    'apikey':        SUPABASE_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_KEY
-  };
-
+  if (!SUPABASE_URL || SUPABASE_URL === 'YOUR_SUPABASE_PROJECT_URL') {
+    console.warn('[Interviewer] Supabase not configured');
+    return false;
+  }
   try {
-    // Step 1: Try PATCH (update existing row by email)
-    console.log('[Interviewer] Trying PATCH update for:', profile.email);
-    const patchRes = await fetch(
-      SUPABASE_URL + '/rest/v1/interviewer_profiles?email=eq.' + encodeURIComponent(profile.email),
-      { method: 'PATCH', headers: { ...headers, 'Prefer': 'return=minimal' }, body }
-    );
+    const body = {
+      name:          profile.name,
+      email:         profile.email,
+      service_id:    profile.service_id,
+      template_id:   profile.template_id,
+      public_key:    profile.public_key,
+      private_key:   profile.private_key || '',
+      registered_at: new Date().toISOString()
+    };
 
-    if (patchRes.ok) {
-      // Check if any row was actually updated
-      const count = patchRes.headers.get('content-range');
-      console.log('[Interviewer] PATCH result — content-range:', count);
+    console.log('[Interviewer] Saving to Supabase...', body);
 
-      // If PATCH updated 0 rows (new email), do POST insert
-      if (count === '*/0' || count === null) {
-        console.log('[Interviewer] No existing row — doing POST insert');
-        const postRes = await fetch(
-          SUPABASE_URL + '/rest/v1/interviewer_profiles',
-          { method: 'POST', headers: { ...headers, 'Prefer': 'return=minimal' }, body }
-        );
-        if (postRes.ok || postRes.status === 201) {
-          console.log('[Interviewer] POST insert successful');
-          return true;
-        } else {
-          const e = await postRes.text().catch(() => '');
-          console.warn('[Interviewer] POST insert failed:', postRes.status, e);
-          return false;
-        }
-      }
-      console.log('[Interviewer] PATCH update successful');
+    // Try simple POST first (insert)
+    const res = await fetch(SUPABASE_URL + '/rest/v1/interviewer_profiles', {
+      method: 'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'apikey':        SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Prefer':        'return=representation'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const text = await res.text();
+    console.log('[Interviewer] POST response:', res.status, text);
+
+    if (res.ok || res.status === 201) {
+      console.log('[Interviewer] Inserted successfully');
       return true;
-    } else {
-      const e = await patchRes.text().catch(() => '');
-      console.warn('[Interviewer] PATCH failed:', patchRes.status, e);
-      // Fallback: try POST with upsert
-      const upsertRes = await fetch(
-        SUPABASE_URL + '/rest/v1/interviewer_profiles',
-        { method: 'POST', headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=minimal' }, body }
+    }
+
+    // If duplicate (409/23505), try UPDATE via PATCH
+    if (res.status === 409 || text.includes('23505') || text.includes('duplicate')) {
+      console.log('[Interviewer] Duplicate found — trying PATCH update...');
+      const patchRes = await fetch(
+        SUPABASE_URL + '/rest/v1/interviewer_profiles?email=eq.' + encodeURIComponent(profile.email),
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type':  'application/json',
+            'apikey':        SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Prefer':        'return=representation'
+          },
+          body: JSON.stringify({
+            name:        profile.name,
+            service_id:  profile.service_id,
+            template_id: profile.template_id,
+            public_key:  profile.public_key,
+            private_key: profile.private_key || ''
+          })
+        }
       );
-      if (upsertRes.ok || upsertRes.status === 201) {
-        console.log('[Interviewer] Upsert fallback successful');
+      const patchText = await patchRes.text();
+      console.log('[Interviewer] PATCH response:', patchRes.status, patchText);
+      if (patchRes.ok) {
+        console.log('[Interviewer] Updated successfully via PATCH');
         return true;
       }
-      const e2 = await upsertRes.text().catch(() => '');
-      console.warn('[Interviewer] Upsert fallback failed:', upsertRes.status, e2);
+      console.warn('[Interviewer] PATCH also failed:', patchRes.status, patchText);
+      // Show actual error in UI
+      const errEl = document.getElementById('iwErr');
+      if (errEl) {
+        errEl.textContent = 'Supabase error ' + patchRes.status + ': ' + patchText.substring(0,120);
+        errEl.style.display = 'block';
+      }
       return false;
     }
+
+    // Other error — show it
+    console.warn('[Interviewer] Unexpected error:', res.status, text);
+    const errEl = document.getElementById('iwErr');
+    if (errEl) {
+      errEl.textContent = 'Supabase error ' + res.status + ': ' + text.substring(0,120);
+      errEl.style.display = 'block';
+    }
+    return false;
+
   } catch(e) {
-    console.warn('[Interviewer] Supabase save exception:', e);
+    console.error('[Interviewer] Exception:', e.message);
+    const errEl = document.getElementById('iwErr');
+    if (errEl) {
+      errEl.textContent = 'Network error: ' + e.message;
+      errEl.style.display = 'block';
+    }
     return false;
   }
 }
+
 
 async function lookupInterviewerProfile(email) {
   /* Returns { service_id, template_id, public_key } or null
