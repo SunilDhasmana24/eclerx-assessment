@@ -497,19 +497,51 @@ hr { border: none; border-top: 1px solid var(--border-light); margin: 20px 0; }
           <div class="auth-form-sub" style="margin-bottom:14px;">Register your EmailJS credentials. <a href="#" onclick="document.getElementById('iwSteps').classList.toggle('hidden');return false;" style="color:var(--blue);font-size:12px;">Setup guide ▾</a></div>
 
           <div id="iwSteps" class="hidden" style="margin-bottom:14px;">
+
             <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
-              <div style="display:flex;align-items:center;"><span class="step-num">1</span><span class="step-title">Sign up at <a href="https://dashboard.emailjs.com/sign-up" target="_blank" style="color:var(--blue);">emailjs.com</a></span></div>
+              <div style="display:flex;align-items:center;"><span class="step-num">1</span><span class="step-title">Go to <a href="https://dashboard.emailjs.com/sign-up" target="_blank" style="color:var(--blue);">emailjs.com</a> → Sign up free</span></div>
             </div>
+
             <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
-              <div style="display:flex;align-items:center;"><span class="step-num">2</span><span class="step-title">Email Services → Add New Service → copy <code>service_xxx</code></span></div>
+              <div style="display:flex;align-items:center;"><span class="step-num">2</span><span class="step-title">Add Email Service → choose Gmail / Outlook → connect your email</span></div>
+              <div class="step-body">Copy and note down the <strong>Service ID</strong> (e.g. <code>service_abc123</code>)</div>
             </div>
+
             <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
-              <div style="display:flex;align-items:center;"><span class="step-num">3</span><span class="step-title">Email Templates → Create Template → set To Email = your eClerx email → copy <code>template_xxx</code></span></div>
-              <div class="step-body" style="padding-left:30px;font-size:11px;">Body variables needed: <code>{{otp_code}}</code> <code>{{candidate_name}}</code> <code>{{candidate_email}}</code> <code>{{valid_minutes}}</code></div>
+              <div style="display:flex;align-items:center;"><span class="step-num">3</span><span class="step-title">Create Email Template with this exact content</span></div>
+              <div class="step-body">
+                <strong>Subject:</strong> <code>eClerx Assessment OTP for {{candidate_name}}</code><br>
+                <strong>Body:</strong><br>
+                <div style="background:var(--white);border:1px solid var(--border);border-radius:4px;padding:8px 10px;margin:6px 0;font-family:var(--mono);font-size:11px;line-height:1.8;color:var(--text-2);">
+                  A candidate has registered for the eClerx technical assessment.<br><br>
+                  Candidate: {{candidate_name}}<br>
+                  Email: {{candidate_email}}<br><br>
+                  OTP Code: {{otp_code}}<br>
+                  Valid for: {{valid_minutes}} minutes<br><br>
+                  Share this OTP with the candidate to complete their registration.
+                </div>
+              </div>
             </div>
+
             <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
-              <div style="display:flex;align-items:center;"><span class="step-num">4</span><span class="step-title">Account → General → copy Public Key</span></div>
+              <div style="display:flex;align-items:center;"><span class="step-num">4</span><span class="step-title">Set To Email → <code>sunil.dhasmana@eclerx.com</code> → Save</span></div>
+              <div class="step-body">Copy and note down the <strong>Template ID</strong> (e.g. <code>template_xyz789</code>)</div>
             </div>
+
+            <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;"><span class="step-num">5</span><span class="step-title">Account → API Keys → copy both keys</span></div>
+              <div class="step-body">Note down your <strong>Public Key</strong> and <strong>Private Key</strong></div>
+            </div>
+
+            <div class="step-box" style="padding:10px 12px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;"><span class="step-num">6</span><span class="step-title">Account → Security → API Settings</span></div>
+              <div class="step-body">
+                Make sure <strong>both options</strong> are checked:<br>
+                ☑ Allow EmailJS API for non-browser applications<br>
+                ☑ Use Private Key (recommended)
+              </div>
+            </div>
+
           </div>
         </div>
 
